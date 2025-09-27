@@ -1,7 +1,8 @@
 import "./App.css";
+import JoinGame from "./pages/JoinGame";
 
 function App() {
-  return <></>;
+  return <JoinGame />;
 }
 
 export default App;
