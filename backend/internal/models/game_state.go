@@ -6,6 +6,14 @@ import (
 	"github.com/VincentZhao12/secret-hitler/backend/internal/repository"
 )
 
+type VoteResult int
+
+const (
+	VotePending VoteResult = iota
+	VoteJa
+	VoteNein
+)
+
 type GameState struct {
 	Players 			[]Player 		`json:"players"`
 	PlayerIndexMap		map[string]int 	`json:"-"`
@@ -18,11 +26,12 @@ type GameState struct {
 	PrevChancellorIndex int 			`json:"prev_chancellor_index"`
 	NomineeIndex    	int 			`json:"nominee_index"`
 	Phase            	GamePhase 		`json:"phase"`
-	Votes            	[]bool 			`json:"votes"`
+	Votes            	[]VoteResult 	`json:"votes,omitempty"`
 	PendingAction      	*Action     	`json:"pending_action,omitempty"`
 	PeekedCards        	[]Card      	`json:"peeked_cards,omitempty"`
 	PeekerIndex			int      		`json:"peeker_index,omitempty"`
 	ExecutedPlayers    	[]string    	`json:"executed_players"`
+	ResumeOrderIndex	int 			`json:"resume_order_index,omitempty"`
 }
 
 func createDeck() []Card {
@@ -49,7 +58,7 @@ func NewGameState() GameState {
 		PrevChancellorIndex:-1,
 		NomineeIndex:       -1,
 		Phase:         		Setup,
-		Votes:         		[]bool{},
+		Votes:         		nil,
 		PendingAction:      nil,
 		PeekedCards:      	nil,
 		PeekerIndex:         	-1,
@@ -57,7 +66,7 @@ func NewGameState() GameState {
 	}
 }
 
-func (state *GameState) AddPlayer(id, username string) error {
+func (state *GameState) AddPlayer(id string, username string) error {
 	if _, exists := state.PlayerIndexMap[id]; exists {
 		return repository.ErrPlayerAlreadyExists
 	}
@@ -161,6 +170,36 @@ func (state *GameState) ShuffleDeck() {
 
 	state.Deck = append(state.Discard, state.Deck...)
 	state.Discard = []Card{}
+}
+
+func (state *GameState) RevealPlayer(forPlayer Player, player Player) GameState {
+	obfuscatedState := *state
+
+	// Obfuscate deck
+	for i := range obfuscatedState.Deck {
+		obfuscatedState.Deck[i] = CardHidden
+	}
+
+	// Obfuscate discard pile
+	for i := range obfuscatedState.Discard {
+		obfuscatedState.Discard[i] = CardHidden
+	}
+
+	// Obfuscate hands
+	if forPlayer.ID != obfuscatedState.Players[obfuscatedState.PeekerIndex].ID{
+		obfuscatedState.PeekedCards = nil
+	}
+
+	// Obfuscate player information
+	for i, player := range obfuscatedState.Players {
+		if forPlayer.Role != RoleFascist &&  player.ID != forPlayer.ID {
+			obfuscatedState.Players[i].Role = RoleHidden
+		}
+
+		player.ID = ""
+	}
+
+	return obfuscatedState
 }
 
 
