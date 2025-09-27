@@ -8,7 +8,7 @@ const (
 
 type GameStateMessage struct {
 	BaseMessage
-	GameState models.GameState `json:"game_state"`
+	GameState models.GameState `json:"game_state" tstype:"GameState"`
 }
 
 func NewGameStateMessage(senderID string, gameState models.GameState) *GameStateMessage {

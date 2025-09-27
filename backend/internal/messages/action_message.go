@@ -10,7 +10,7 @@ const (
 
 type ActionMessage struct {
 	BaseMessage
-	Action		models.Action `json:"action"`
+	Action		models.Action `json:"action" tstype:"Action"`
 	TargetIndex int	`json:"target_index,omitempty"`
 	Vote        *bool `json:"vote,omitempty"`
 }

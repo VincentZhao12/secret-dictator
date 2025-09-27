@@ -1,0 +1,17 @@
+packages:
+  - path: "github.com/VincentZhao12/secret-hitler/backend/internal/models"
+    output_path: ./generated-types/modules/models.ts
+    type_mappings:
+      time.Time: "string /* RFC3339 */"
+      null.String: "null | string"
+      null.Bool: "null | boolean"
+      uuid.UUID: "string /* uuid */"
+      uuid.NullUUID: "null | string /* uuid */"
+  - path: "github.com/VincentZhao12/secret-hitler/backend/internal/messages"
+    output_path: ./generated-types/modules/messages.ts
+    type_mappings:
+      time.Time: "string /* RFC3339 */"
+      null.String: "null | string"
+      null.Bool: "null | boolean"
+      uuid.UUID: "string /* uuid */"
+      uuid.NullUUID: "null | string /* uuid */"

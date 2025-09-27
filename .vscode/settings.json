@@ -1,0 +1,13 @@
+{
+  "emeraldwalk.runonsave": {
+    "commands": [
+      {
+        "match": "^backend/.*\\.go$",
+        // "cmd": "cd backend && make types",
+        "cmd": "echo Hello from Run on Save",
+        "isAsync": true,
+        "silent": false
+      }
+    ]
+  }
+}
