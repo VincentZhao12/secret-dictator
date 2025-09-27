@@ -4,6 +4,7 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   children: ReactNode;
   variant?: "primary" | "secondary";
   size?: "sm" | "md" | "lg";
+  loading?: boolean;
 }
 
 export function Button({
@@ -11,10 +12,16 @@ export function Button({
   variant = "primary",
   size = "md",
   className = "",
+  loading = false,
+  disabled,
   ...props
 }: ButtonProps) {
   const baseClasses =
-    "font-extrabold uppercase tracking-wider transition-all duration-200 transform hover:scale-[1.03] border-4 border-black font-propaganda cursor-pointer";
+    "font-extrabold uppercase tracking-wider transition-all duration-200 transform border-4 border-black font-propaganda cursor-pointer relative";
+  
+  const isDisabled = disabled || loading;
+  const hoverClasses = isDisabled ? "" : "hover:scale-[1.03]";
+  const disabledClasses = isDisabled ? "opacity-70 cursor-not-allowed" : "";
 
   const variantClasses = {
     primary:
@@ -31,10 +38,18 @@ export function Button({
 
   return (
     <button
-      className={`${baseClasses} ${variantClasses[variant]} ${sizeClasses[size]} ${className}`}
+      className={`${baseClasses} ${hoverClasses} ${disabledClasses} ${variantClasses[variant]} ${sizeClasses[size]} ${className}`}
+      disabled={isDisabled}
       {...props}
     >
-      {children}
+      {loading && (
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="w-5 h-5 border-2 border-black border-t-transparent rounded-full animate-spin"></div>
+        </div>
+      )}
+      <span className={loading ? "invisible" : "visible"}>
+        {children}
+      </span>
     </button>
   );
 }

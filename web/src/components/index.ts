@@ -6,3 +6,4 @@ export { Container } from './Container';
 export { Divider } from './Divider';
 export { Badge } from './Badge';
 export { Input } from './Input';
+export { Alert } from './Alert';

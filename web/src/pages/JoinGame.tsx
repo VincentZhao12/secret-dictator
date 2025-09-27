@@ -18,6 +18,7 @@ function JoinGame() {
   const [errors, setErrors] = useState<{ gameId?: string; username?: string }>(
     {}
   );
+  const [isJoining, setIsJoining] = useState(false);
 
   useEffect(() => {
     document.title = "Join Game - Secret Hitler";
@@ -29,7 +30,7 @@ function JoinGame() {
     }
   }, []);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     // Basic validation
@@ -49,11 +50,20 @@ function JoinGame() {
 
     // If no errors, proceed with joining
     if (Object.keys(newErrors).length === 0) {
-      console.log("Joining game:", {
-        gameId: gameId.trim(),
-        username: username.trim(),
-      });
-      // TODO: Implement actual game joining logic
+      setIsJoining(true);
+      try {
+        console.log("Joining game:", {
+          gameId: gameId.trim(),
+          username: username.trim(),
+        });
+        // TODO: Implement actual game joining logic
+        // Simulate API call delay
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      } catch (error) {
+        console.error("Error joining game:", error);
+      } finally {
+        setIsJoining(false);
+      }
     }
   };
 
@@ -101,7 +111,7 @@ function JoinGame() {
           />
 
           <div className="space-y-3">
-            <Button type="submit" variant="primary" className="w-full">
+            <Button type="submit" variant="primary" className="w-full" loading={isJoining}>
               JOIN GAME
             </Button>
 
