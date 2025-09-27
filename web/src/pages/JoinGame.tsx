@@ -1,40 +1,64 @@
-import { useState } from 'react';
-import { Button, Heading, Text, Card, Container, Input, Divider } from '../components';
-import '../App.css';
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import {
+  Button,
+  Heading,
+  Text,
+  Card,
+  Container,
+  Input,
+  Divider,
+} from "../components";
+import "../App.css";
 
 function JoinGame() {
-  const [gameId, setGameId] = useState('');
-  const [username, setUsername] = useState('');
-  const [errors, setErrors] = useState<{ gameId?: string; username?: string }>({});
+  const navigate = useNavigate();
+  const [gameId, setGameId] = useState("");
+  const [username, setUsername] = useState("");
+  const [errors, setErrors] = useState<{ gameId?: string; username?: string }>(
+    {}
+  );
+
+  useEffect(() => {
+    document.title = "Join Game - Secret Hitler";
+    const queryString = window.location.search;
+    const urlParams = new URLSearchParams(queryString);
+    const gameParam = urlParams.get("game");
+    if (gameParam) {
+      setGameId(gameParam);
+    }
+  }, []);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     // Basic validation
     const newErrors: { gameId?: string; username?: string } = {};
-    
+
     if (!gameId.trim()) {
-      newErrors.gameId = 'Game ID is required';
+      newErrors.gameId = "Game ID is required";
     }
-    
+
     if (!username.trim()) {
-      newErrors.username = 'Username is required';
+      newErrors.username = "Username is required";
     } else if (username.trim().length < 2) {
-      newErrors.username = 'Username must be at least 2 characters';
+      newErrors.username = "Username must be at least 2 characters";
     }
-    
+
     setErrors(newErrors);
-    
+
     // If no errors, proceed with joining
     if (Object.keys(newErrors).length === 0) {
-      console.log('Joining game:', { gameId: gameId.trim(), username: username.trim() });
+      console.log("Joining game:", {
+        gameId: gameId.trim(),
+        username: username.trim(),
+      });
       // TODO: Implement actual game joining logic
     }
   };
 
   const handleBackToHome = () => {
-    console.log('Navigating back to home...');
-    // TODO: Implement navigation back to home
+    navigate("/");
   };
 
   return (
@@ -77,11 +101,7 @@ function JoinGame() {
           />
 
           <div className="space-y-3">
-            <Button
-              type="submit"
-              variant="primary"
-              className="w-full"
-            >
+            <Button type="submit" variant="primary" className="w-full">
               JOIN GAME
             </Button>
 

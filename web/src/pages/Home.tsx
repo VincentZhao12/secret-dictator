@@ -1,12 +1,21 @@
+import { useNavigate } from "react-router-dom";
 import { Button, Heading, Text, Card, Container, Divider } from "../components";
+import { useEffect } from "react";
 
 function Home() {
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    document.title = "Home - Secret Hitler";
+  }, []);
+
   const handleCreateGame = () => {
     console.log("Creating new game...");
+    // TODO: Navigate to create game page when implemented
   };
 
   const handleJoinGame = () => {
-    console.log("Joining game...");
+    navigate("/join");
   };
 
   return (
