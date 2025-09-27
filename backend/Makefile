@@ -9,4 +9,4 @@ types:
 	tygo generate
 	touch generated-types/types.ts
 	cat generated-types/modules/* > generated-types/types.ts
-	cp generated-types/types.ts ../web/src/types/types.ts
+	cp generated-types/types.ts ../web/src/types/index.ts
