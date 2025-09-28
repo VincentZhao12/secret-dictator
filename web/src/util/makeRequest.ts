@@ -15,7 +15,12 @@ export const makeRequest = async <T>(
   });
 
   if (!res.ok) {
-    throw new Error(`API request failed with status ${res.status}`);
+    const message = await res.text();
+    if (message) {
+      throw new Error(message);
+    } else {
+      throw new Error(`API request ${res.status}`);
+    }
   }
 
   const response: T = (await res.json()) as T;

@@ -8,17 +8,41 @@ import {
   Container,
   Input,
   Divider,
+  Alert,
 } from "../components";
 import "../App.css";
+import { useMutation } from "@tanstack/react-query";
+import { makePostRequest } from "@util/MakeRequest";
+import { type JoinGameResponse, type JoinGameRequest } from "@types";
 
 function JoinGame() {
   const navigate = useNavigate();
   const [gameId, setGameId] = useState("");
   const [username, setUsername] = useState("");
-  const [errors, setErrors] = useState<{ gameId?: string; username?: string }>(
-    {}
-  );
-  const [isJoining, setIsJoining] = useState(false);
+  const [errors, setErrors] = useState<{
+    join?: string;
+    gameId?: string;
+    username?: string;
+  }>({});
+
+  const joinGame = useMutation({
+    mutationFn: async (request: JoinGameRequest) => {
+      return makePostRequest<JoinGameResponse>("games/join", request);
+    },
+    onError: (error) => {
+      const newErrors: { join?: string; gameId?: string; username?: string } = {
+        join: error.message,
+      };
+
+      setErrors(newErrors);
+    },
+    onSuccess: (resp) => {
+      // TODO: Implement transition to play after play exists
+      // localStorage.setItem(`player_id_for_${resp.game_id}`, resp.player_id);
+      // navigate(`/play?game=${resp.game_id}`);
+      console.log(`joined game ${resp.player_id}`);
+    },
+  });
 
   useEffect(() => {
     document.title = "Join Game - Secret Hitler";
@@ -34,7 +58,7 @@ function JoinGame() {
     e.preventDefault();
 
     // Basic validation
-    const newErrors: { gameId?: string; username?: string } = {};
+    const newErrors: { join?: string; gameId?: string; username?: string } = {};
 
     if (!gameId.trim()) {
       newErrors.gameId = "Game ID is required";
@@ -50,20 +74,10 @@ function JoinGame() {
 
     // If no errors, proceed with joining
     if (Object.keys(newErrors).length === 0) {
-      setIsJoining(true);
-      try {
-        console.log("Joining game:", {
-          gameId: gameId.trim(),
-          username: username.trim(),
-        });
-        // TODO: Implement actual game joining logic
-        // Simulate API call delay
-        await new Promise(resolve => setTimeout(resolve, 1000));
-      } catch (error) {
-        console.error("Error joining game:", error);
-      } finally {
-        setIsJoining(false);
-      }
+      joinGame.mutate({
+        username,
+        game_id: gameId,
+      });
     }
   };
 
@@ -86,6 +100,14 @@ function JoinGame() {
         <Text variant="description" className="text-center mb-8">
           Enter the game ID and your username to join an existing game.
         </Text>
+
+        {errors.join && (
+          <div className="mb-6 relative z-10">
+            <Alert variant="error" onClose={() => setErrors({})}>
+              {errors.join}
+            </Alert>
+          </div>
+        )}
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -111,7 +133,12 @@ function JoinGame() {
           />
 
           <div className="space-y-3">
-            <Button type="submit" variant="primary" className="w-full" loading={isJoining}>
+            <Button
+              type="submit"
+              variant="primary"
+              className="w-full"
+              loading={joinGame.isPending}
+            >
               JOIN GAME
             </Button>
 

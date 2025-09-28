@@ -10,7 +10,7 @@ import {
 } from "../components";
 import { useEffect, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
-import { makePostRequest } from "../util/MakeRequest";
+import { makePostRequest } from "@util/MakeRequest";
 import type { CreateGameResponse } from "../types";
 
 function Home() {
