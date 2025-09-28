@@ -17,10 +17,10 @@ type Player struct {
 	Role     PlayerRole `json:"role"`
 }
 
-func NewPlayer(id string, username string, role PlayerRole) Player {
+func NewPlayer(id string, username string) Player {
 	return Player{
 		ID:       id,
 		Username: username,
-		Role:     role,
+		Role:     RoleUnassigned,
 	}
 }

@@ -30,6 +30,7 @@ func SetupRouter(m *game.Manager) http.Handler {
 
     r.Route("/api/v1", func(api chi.Router) {
         api.Post("/games/create", handlers.CreateGame(m))
+        api.Post("/games/join", handlers.JoinGame(m))
     })
 
     return r

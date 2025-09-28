@@ -28,7 +28,8 @@ func generateRandomID(length int) string {
 
 func NewGame() *Game {
 	return &Game{
-		ID:      generateRandomID(8),
+		ID: 		generateRandomID(8),
+		state: 		models.NewGameState(),
 	}
 }
 
@@ -36,8 +37,13 @@ func (g *Game) SetHostID(id string) {
 	g.HostID = id
 }
 
-func (g *Game) AddPlayer(id string, username string) {	
-	g.state.AddPlayer(id, username)
+func (g *Game) NewPlayer(username string) (*models.Player, error) {	
+	player, err := g.state.AddPlayer(generateRandomID(16), username)
+	if err != nil {
+		return nil, err
+	}
+
+	return player, nil
 }
 
 func (g *Game) broadcastGameState() {

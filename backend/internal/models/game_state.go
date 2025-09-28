@@ -66,22 +66,23 @@ func NewGameState() GameState {
 	}
 }
 
-func (state *GameState) AddPlayer(id string, username string) error {
+func (state *GameState) AddPlayer(id string, username string) (*Player, error) {
 	if _, exists := state.PlayerIndexMap[id]; exists {
-		return repository.ErrPlayerAlreadyExists
+		return nil, repository.ErrPlayerAlreadyExists
 	}
 
 	if len(state.Players) >= 10 {
-		return repository.ErrGameFull
+		return nil,repository.ErrGameFull
 	}
 
 	if state.Phase != Setup {
-		return repository.ErrGameInProgress
+		return nil, repository.ErrGameInProgress
 	}
 
 	state.PlayerIndexMap[id] = len(state.Players)
-	state.Players = append(state.Players, NewPlayer(id, username, RoleUnassigned))
-	return nil
+	player := NewPlayer(id, username)
+	state.Players = append(state.Players, player)
+	return &player, nil
 }
 
 func (state *GameState) RemovePlayer(id string) error {

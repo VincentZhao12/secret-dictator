@@ -6,3 +6,11 @@
 export interface CreateGameResponse {
   game_id: string;
 }
+export interface JoinGameRequest {
+  game_id: string;
+  username: string;
+}
+export interface JoinGameResponse {
+  game_id: string;
+  player_id: string;
+}
