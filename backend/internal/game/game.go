@@ -158,6 +158,17 @@ func (g *Game) Run() {
 // SHOULD BE IDIOMATIC
 func (g *Game) ProcessActionMessage(message messages.ActionMessage) messages.Message {
 	switch message.Action {
+		case models.ActionStartGame:
+			err := g.state.StartGame()
+			if err != nil {
+				return messages.NewActionErrorMessage(message.SenderID, messages.CouldNotStart)
+			}
+
+			return messages.NewGameStateMessage(
+				"server",
+				g.state,
+			)
+
 		case models.ActionInvestigate:
 			if errorMessage := g.validateActionMessage(message, true, true); errorMessage != nil {
 				return errorMessage

@@ -34,6 +34,7 @@ const (
 	NotAllowed ActionErrorReason = "Action not allowed"
 	InvalidTarget ActionErrorReason = "Targeted player is cannot be targeted for this action"
 	InvalidAction ActionErrorReason = "Invalid action"
+	CouldNotStart ActionErrorReason = "Could not start game"
 )
 
 type ActionErrorMessage struct {
