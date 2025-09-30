@@ -1,0 +1,274 @@
+import { useMemo, useState } from "react";
+import { Button } from "./Button";
+import { PolicyCard } from "./PolicyCard";
+import { FaThumbsUp, FaThumbsDown } from "react-icons/fa";
+import type { GameState, Action } from "../types";
+import {
+  ActionVote,
+  ActionLegislate,
+  ActionEndTurn,
+  Election,
+  Legislation1,
+  Legislation2,
+  Executive,
+  Nomination,
+  ActionInvestigate,
+  ActionExecution,
+  ActionSpecialElection,
+  ActionPolicyPeek,
+  Setup,
+  GameOver,
+  Paused,
+} from "../types";
+
+interface ActionPanelProps {
+  gameState: GameState;
+  currentPlayerIndex: number;
+  onAction: (action: Action, data?: any) => void;
+}
+
+export function ActionPanel({
+  gameState,
+  currentPlayerIndex,
+  onAction,
+}: ActionPanelProps) {
+  const [selectedCard, setSelectedCard] = useState<number>(-1);
+
+  const isCurrentPlayerTurn = (requiredIndex: number) => {
+    return currentPlayerIndex === requiredIndex;
+  };
+
+  const getPhaseTitle = () => {
+    switch (gameState.phase) {
+      case Election:
+        return "ELECTION - Vote on the Government";
+      case Legislation1:
+        return "LEGISLATION - President selects 2 policies";
+      case Legislation2:
+        return "LEGISLATION - Chancellor selects 1 policy";
+      case Executive:
+        return "EXECUTIVE ACTION";
+      case Nomination:
+        return "NOMINATION - President nominates a chancellor";
+      case Setup:
+        return "SETUP - Game host sets up the game";
+      case GameOver:
+        return `GAME OVER - Game over ${gameState.winner}`;
+      case Paused:
+        return "PAUSED - Game paused";
+      default:
+        return "Waiting for next phase...";
+    }
+  };
+
+  const canVote = () => {
+    return gameState.phase === Election;
+  };
+
+  const canLegislate = () => {
+    return (
+      (gameState.phase === Legislation1 &&
+        isCurrentPlayerTurn(gameState.president_index)) ||
+      (gameState.phase === Legislation2 &&
+        isCurrentPlayerTurn(gameState.chancellor_index))
+    );
+  };
+
+  const handleVote = (vote: boolean) => {
+    onAction(ActionVote, { vote });
+  };
+
+  const handleCardSelection = (cardIndex: number) => {
+    if (selectedCard === cardIndex) {
+      setSelectedCard(-1);
+    } else {
+      setSelectedCard(cardIndex);
+    }
+  };
+
+  const handleLegislate = () => {
+    if (selectedCard !== -1) {
+      onAction(ActionLegislate, { selectedCard });
+      setSelectedCard(-1);
+    }
+  };
+
+  const getPeekedCards = () => {
+    return gameState.peeked_cards || [];
+  };
+
+  const getRequiredSelections = () => {
+    if (gameState.phase === Legislation1) return 1; // President discards 1, keeps 2
+    if (gameState.phase === Legislation2) return 1; // Chancellor discards 1, keeps 1
+    return 0;
+  };
+
+  const getExecutiveMessage = () => {
+    switch (gameState.pending_action) {
+      case ActionInvestigate:
+        return "Click on a player to investigate";
+      case ActionExecution:
+        return "Click on a player to execute";
+      case ActionSpecialElection:
+        return "Click on a player to elect as president";
+      case ActionPolicyPeek:
+        return "End turn once you are done peeking";
+      default:
+        return "";
+    }
+  };
+
+  const renderVotingInterface = () => {
+    if (!canVote()) return null;
+
+    return (
+      <div className="flex justify-center space-x-4 mb-4">
+        <Button
+          onClick={() => handleVote(true)}
+          variant="primary"
+          className="flex items-center space-x-2"
+        >
+          <FaThumbsUp />
+          <span>JA</span>
+        </Button>
+        <Button
+          onClick={() => handleVote(false)}
+          variant="secondary"
+          className="flex items-center space-x-2"
+        >
+          <FaThumbsDown />
+          <span>NEIN</span>
+        </Button>
+      </div>
+    );
+  };
+
+  const renderPolicySelection = () => {
+    if (!canLegislate() || getPeekedCards().length === 0) return null;
+
+    return (
+      <div className="space-y-4">
+        <div className="text-center">
+          <p className="text-black font-propaganda text-sm">
+            Select {getRequiredSelections()} card(s) to discard:
+          </p>
+        </div>
+        <div className="flex justify-center space-x-3">
+          {getPeekedCards().map((card, index) => {
+            const isSelected = selectedCard === index;
+            return (
+              <div
+                key={index}
+                className={`cursor-pointer transition-transform duration-150 ${
+                  isSelected ? "scale-110 z-10" : "hover:scale-105"
+                }`}
+              >
+                <PolicyCard
+                  type={card}
+                  onClick={() => handleCardSelection(index)}
+                />
+                {isSelected && (
+                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                    <span className="bg-yellow-400/80 text-black font-bold px-2 py-1 rounded shadow-lg text-xs border-2 border-black">
+                      SELECTED
+                    </span>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+        <div className="flex justify-center">
+          <Button
+            onClick={handleLegislate}
+            variant="primary"
+            disabled={selectedCard === -1}
+          >
+            CONFIRM SELECTION
+          </Button>
+        </div>
+      </div>
+    );
+  };
+
+  const renderExecutiveAction = () => {
+    if (gameState.phase !== Executive) return null;
+
+    const isCurrentPlayerPresident =
+      gameState.president_index === currentPlayerIndex;
+
+    if (isCurrentPlayerPresident) {
+      return (
+        <div className="text-center">
+          <div className="text-black font-propaganda text-sm flex flex-col items-center justify-center">
+            <span>{getExecutiveMessage()}</span>
+            {gameState.pending_action === ActionPolicyPeek && (
+              <div className="flex justify-center space-x-3 mt-2 relative min-h-[5.5rem]">
+                {getPeekedCards().map((card, index) => (
+                  <div
+                    key={index}
+                    className="transition-transform duration-150 scale-110 z-10 relative static"
+                  >
+                    <PolicyCard type={card} />
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div className="text-center">
+        <p className="text-black font-propaganda text-sm flex items-center justify-center space-x-2">
+          <span>Waiting for president to perform executive action</span>
+        </p>
+      </div>
+    );
+  };
+
+  const renderEndTurnButton = () => {
+    const shouldShowEndTurn =
+      gameState.phase === Executive &&
+      (gameState.pending_action === ActionInvestigate ||
+        gameState.pending_action === ActionPolicyPeek) &&
+      gameState.president_index === currentPlayerIndex;
+
+    if (!shouldShowEndTurn) return null;
+
+    return (
+      <div className="flex justify-center">
+        <Button onClick={() => onAction(ActionEndTurn)} variant="secondary">
+          END TURN
+        </Button>
+      </div>
+    );
+  };
+
+  return useMemo(
+    () => (
+      <div className="bg-orange-200/90 border-4 border-black rounded-xl p-6 shadow-[6px_6px_0px_black] mb-6">
+        {/* Phase Title */}
+        <div className="text-center mb-4">
+          <h3 className="font-propaganda text-xl tracking-wider text-black">
+            {getPhaseTitle()}
+          </h3>
+        </div>
+
+        {/* Voting Interface */}
+        {renderVotingInterface()}
+
+        {/* Policy Selection Interface */}
+        {renderPolicySelection()}
+
+        {/* Executive Action Interface */}
+        {renderExecutiveAction()}
+
+        {/* End Turn Button */}
+        {renderEndTurnButton()}
+      </div>
+    ),
+    [gameState, currentPlayerIndex, selectedCard, onAction]
+  );
+}
