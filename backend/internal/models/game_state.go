@@ -30,7 +30,8 @@ type GameState struct {
 	PendingAction      	*Action     	`json:"pending_action,omitempty"`
 	PeekedCards        	[]Card      	`json:"peeked_cards,omitempty"`
 	PeekerIndex			int      		`json:"peeker_index,omitempty"`
-	ResumeOrderIndex	int 			`json:"resume_order_index,omitempty"`
+	ResumeOrderIndex	int 			`json:"resume_order_index,omitempty"` // Post special election
+	ResumePhase			GamePhase		`json:"resume_phase,omitempty"`
 	Winner				Team 			`json:"winner,omitempty"`
 }
 
@@ -235,4 +236,71 @@ func (state *GameState) ObfuscateGameState(p Player) GameState {
 	}
 
 	return obfuscatedState
+}
+
+func (state *GameState) EndGame(winner Team) {
+	state.Phase = GameOver
+	state.Winner = winner
+}
+
+func (state *GameState) EndGameIfNecessary() bool {
+	for _, player := range state.Players {
+		if player.Role == RoleHitler && player.IsExecuted {
+			state.EndGame(TeamLiberal)
+			return true
+		}
+	}
+
+	if state.Board.FascistPolicies >= state.Board.FascistSlots {
+		state.EndGame(TeamFascist)
+		return true
+	}
+
+	if state.Board.LiberalPolicies >= state.Board.LiberalSlots {
+		state.EndGame(TeamLiberal)
+		return true
+	}
+
+	return false
+}
+
+func (state *GameState) NewTurn() {
+	state.Phase = Nomination
+	state.PrevPresidentIndex = state.PresidentIndex
+	state.PrevChancellorIndex = state.ChancellorIndex
+	
+	if state.ResumeOrderIndex != -1 {
+		state.PresidentIndex = state.ResumeOrderIndex
+		state.ResumeOrderIndex = -1
+	} else {
+		nextPresidentIndex := (state.PresidentIndex + 1) % len(state.Players)
+		for state.Players[nextPresidentIndex].IsExecuted {
+			nextPresidentIndex = (nextPresidentIndex + 1) % len(state.Players)
+		}
+		state.PresidentIndex = nextPresidentIndex
+	}
+
+	state.ChancellorIndex = -1
+	state.NomineeIndex = -1
+	state.Votes = nil
+	state.PendingAction = nil
+	state.PeekedCards = nil
+	state.PeekerIndex = -1
+}
+
+func (state *GameState) PlaceCard(card Card) bool {
+	switch card {
+	case CardFascist:
+		state.Board.FascistPolicies++
+	case CardLiberal:
+		state.Board.LiberalPolicies++
+	}
+
+	if state.Board.ExecutiveActions[state.Board.FascistPolicies] != ActionNone {
+		state.Phase = Executive
+		action := state.Board.ExecutiveActions[state.Board.FascistPolicies]
+		state.PendingAction = &action
+	}
+	
+	return state.EndGameIfNecessary()
 }

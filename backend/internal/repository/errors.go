@@ -7,5 +7,5 @@ var (
 	ErrPlayerAlreadyExists = errors.New("player already exists")
 	ErrGameFull = errors.New("game is full")
 	ErrGameInProgress = errors.New("game is in progress")
-
+	ErrPlayerNotFound = errors.New("player not found")
 )

@@ -24,7 +24,7 @@ function App() {
                       id: "1",
                       username: "Alice",
                       role: "liberal",
-                      is_executed: true,
+                      is_executed: false,
                     },
                     {
                       id: "2",
@@ -96,7 +96,7 @@ function App() {
                   prev_president_index: -1,
                   prev_chancellor_index: -1,
                   nominee_index: -1,
-                  phase: "setup",
+                  phase: "election",
                   pending_action: "",
                   peeked_cards: ["liberal", "fascist", "liberal"],
                   peeker_index: 0,

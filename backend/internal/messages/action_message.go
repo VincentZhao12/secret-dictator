@@ -2,6 +2,7 @@ package messages
 
 import "github.com/VincentZhao12/secret-hitler/backend/internal/models"
 
+
 const (
 	MesasgeTypeAction MessageType = "action"
 	MesasgeTypeActionError MessageType = "action_error"

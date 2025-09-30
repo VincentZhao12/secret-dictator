@@ -4,6 +4,6 @@ type Team string
 
 const (
 	TeamUnassigned Team = "UNASSIGNED"
-	TeamFascists Team = "FASCISTS"
+	TeamFascist Team = "FASCISTS"
 	TeamLiberal  Team = "LIBERALS"
 )

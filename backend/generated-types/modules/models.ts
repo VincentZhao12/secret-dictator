@@ -4,6 +4,7 @@
 // source: action.go
 
 export type Action = string;
+export const ActionStartGame: Action = "start_game";
 export const ActionInvestigate: Action = "investigate";
 export const ActionSpecialElection: Action = "special_election";
 export const ActionPolicyPeek: Action = "policy_peek";
@@ -63,7 +64,8 @@ export interface GameState {
   pending_action?: Action;
   peeked_cards?: Card[];
   peeker_index?: number /* int */;
-  resume_order_index?: number /* int */;
+  resume_order_index?: number /* int */; // Post special election
+  resume_phase?: GamePhase;
   winner?: Team;
 }
 
@@ -101,5 +103,5 @@ export interface Player {
 
 export type Team = string;
 export const TeamUnassigned: Team = "UNASSIGNED";
-export const TeamFascists: Team = "FASCISTS";
+export const TeamFascist: Team = "FASCISTS";
 export const TeamLiberal: Team = "LIBERALS";

@@ -11,11 +11,10 @@ type CreateGameResponse struct {
 	GameID string `json:"game_id"`
 }
 
-
 func CreateGame(Manager *game.Manager) http.HandlerFunc {
 
 	return func(w http.ResponseWriter, r *http.Request) {
-		newGame := game.NewGame()
+		newGame := game.NewGame(Manager)
 		gameID := Manager.AddGame(newGame)
 
 		resp := CreateGameResponse{

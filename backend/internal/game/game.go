@@ -6,12 +6,17 @@ import (
 
 	"github.com/VincentZhao12/secret-hitler/backend/internal/messages"
 	"github.com/VincentZhao12/secret-hitler/backend/internal/models"
+	"github.com/VincentZhao12/secret-hitler/backend/internal/repository"
+	"github.com/gorilla/websocket"
 )
 
 type Game struct {
 	state		models.GameState
 	ID     		string
 	HostID 		string
+	ActionChan	chan(messages.ActionMessage)
+	Connections map[string]*websocket.Conn
+	manager 	*Manager
 }
 
 const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
@@ -26,10 +31,11 @@ func generateRandomID(length int) string {
 	return string(b)
 }
 
-func NewGame() *Game {
+func NewGame(manager *Manager) *Game {
 	return &Game{
 		ID: 		generateRandomID(8),
 		state: 		models.NewGameState(),
+		manager: 	manager,
 	}
 }
 
@@ -37,7 +43,49 @@ func (g *Game) SetHostID(id string) {
 	g.HostID = id
 }
 
-func (g *Game) NewPlayer(username string) (*models.Player, error) {	
+func (g *Game) AddConnection(id string, conn *websocket.Conn) error {
+	if _, exists := g.state.PlayerIndexMap[id]; exists {
+		return repository.ErrPlayerNotFound
+	}
+
+	if oldConn, exists := g.Connections[id]; exists && oldConn != nil {
+		return repository.ErrPlayerAlreadyExists
+	}
+
+	g.Connections[id] = conn
+
+	if len(g.Connections) == len(g.state.Players) && g.state.Phase == models.Paused {
+		g.state.Phase = g.state.ResumePhase
+		g.state.ResumePhase = ""
+	}
+
+	return nil
+}
+
+func (g *Game) CanBeDeleted() bool {
+	return len(g.Connections) == 0 && g.state.Phase == models.GameOver
+}
+
+func (g *Game) DropConnection(id string) error {
+	if _, exists := g.state.PlayerIndexMap[id]; exists {
+		return repository.ErrPlayerNotFound
+	}
+
+	delete(g.Connections, id)
+	if g.state.Phase != models.GameOver {
+		g.state.ResumePhase = g.state.Phase
+		g.state.Phase = models.Paused
+	}
+
+	return nil
+}
+
+func (g *Game) EndGame(winner models.Team) {
+	g.state.EndGame(winner)
+	close(g.ActionChan)
+}
+
+func (g *Game) NewPlayer(username string) (*models.Player, error) {
 	player, err := g.state.AddPlayer(generateRandomID(16), username)
 	if err != nil {
 		return nil, err
@@ -47,7 +95,16 @@ func (g *Game) NewPlayer(username string) (*models.Player, error) {
 }
 
 func (g *Game) broadcastGameState() {
-	// TODO: broadcast
+	for id, conn := range g.Connections {
+		if conn != nil {
+			if err := conn.WriteJSON(messages.NewGameStateMessage(
+				"server",
+				g.state.ObfuscateGameState(g.state.Players[g.state.PlayerIndexMap[id]]),
+			)); err != nil {
+				println("error sending message")
+			}
+		}
+	}
 }
 
 func (g *Game) validateActionMessage(message messages.ActionMessage, requiresPresident bool, requiresTarget bool) *messages.ActionErrorMessage {
@@ -55,10 +112,9 @@ func (g *Game) validateActionMessage(message messages.ActionMessage, requiresPre
 		return messages.NewActionErrorMessage(message.SenderID, messages.NotAllowed)
 	}
 
-	if requiresTarget && message.TargetIndex < 0 || message.TargetIndex >= len(g.state.Players) {
+	if requiresTarget && (message.TargetIndex < 0 || message.TargetIndex >= len(g.state.Players)) {
 		return messages.NewActionErrorMessage(message.SenderID, messages.InvalidTarget)
 	}
-
 
 	if requiresTarget && g.state.Players[message.TargetIndex].IsExecuted {
 		return messages.NewActionErrorMessage(message.SenderID, messages.InvalidTarget)
@@ -69,61 +125,37 @@ func (g *Game) validateActionMessage(message messages.ActionMessage, requiresPre
 	}
 
 	return nil
-
 }
 
 func (g *Game) NewTurn() {
-	g.state.Phase = models.Nomination
-	g.state.PrevPresidentIndex = g.state.PresidentIndex
-	g.state.PrevChancellorIndex = g.state.ChancellorIndex
-	
-	if g.state.ResumeOrderIndex != -1 {
-		g.state.PresidentIndex = g.state.ResumeOrderIndex
-		g.state.ResumeOrderIndex = -1
-	} else {
-		nextPresidentIndex := (g.state.PresidentIndex + 1) % len(g.state.Players)
-		for g.state.Players[nextPresidentIndex].IsExecuted {
-			nextPresidentIndex = (nextPresidentIndex + 1) % len(g.state.Players)
-		}
-	}
-
-	g.state.ChancellorIndex = -1
-	g.state.NomineeIndex = -1
-	g.state.Votes = nil
-	g.state.PendingAction = nil
-	g.state.PeekedCards = nil
-	g.state.PeekerIndex = -1
-
+	g.state.NewTurn()
 	g.broadcastGameState()
 }
 
 func (g *Game) PlaceCard(card models.Card) bool {
-	switch card {
-	case models.CardFascist:
-		g.state.Board.FascistPolicies++
-	case models.CardLiberal:
-		g.state.Board.LiberalPolicies++
-	}
-
-	if g.state.Board.ExecutiveActions[g.state.Board.FascistPolicies] != models.ActionNone {
-		g.state.Phase = models.Executive
-		action := g.state.Board.ExecutiveActions[g.state.Board.FascistPolicies]
-		g.state.PendingAction = &action
-		g.state.Phase = models.Executive
-	}
-	
-	if g.state.Board.FascistPolicies >= g.state.Board.FascistSlots {
-		g.state.Phase = models.GameOver
-		g.state.Winner = models.TeamFascists
-		return true
-	} else if g.state.Board.LiberalPolicies >= g.state.Board.LiberalSlots {
-		g.state.Phase = models.GameOver
-		g.state.Winner = models.TeamLiberal
-		return true
-	}
-	return false
+	return g.state.PlaceCard(card)
 }
 
+func (g *Game) Run() {
+	for {
+		message, ok := <- g.ActionChan
+		if !ok {
+			return
+		}
+		response := g.ProcessActionMessage(message)
+		conn, exists := g.Connections[message.SenderID]
+		if !exists || conn == nil {
+			continue
+		}
+
+		if err := conn.WriteJSON(response); err != nil {
+			println("error writing")
+			continue
+		}
+	}
+}
+
+// SHOULD BE IDIOMATIC
 func (g *Game) ProcessActionMessage(message messages.ActionMessage) messages.Message {
 	switch message.Action {
 		case models.ActionInvestigate:
@@ -196,7 +228,12 @@ func (g *Game) ProcessActionMessage(message messages.ActionMessage) messages.Mes
 			}
 
 			g.state.Players[message.TargetIndex].IsExecuted = true
-			g.NewTurn()
+
+			if g.state.EndGameIfNecessary() {
+				g.broadcastGameState()
+			} else {
+				g.NewTurn()
+			}
 
 			return messages.NewGameStateMessage(
 				"server",
@@ -322,7 +359,7 @@ func (g *Game) ProcessActionMessage(message messages.ActionMessage) messages.Mes
 				g.state.PeekedCards = nil
 				g.state.PeekerIndex = -1
 
-				if gameOver := g.PlaceCard(removedCard); !gameOver {
+				if !g.PlaceCard(removedCard) {
 					g.NewTurn()
 				}
 			}

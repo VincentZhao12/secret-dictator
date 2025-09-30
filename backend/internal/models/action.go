@@ -3,6 +3,7 @@ package models
 type Action string
 
 const (
+	ActionStartGame			Action = "start_game"
 	ActionInvestigate 		Action = "investigate"
 	ActionSpecialElection 	Action = "special_election"
 	ActionPolicyPeek 		Action = "policy_peek"
