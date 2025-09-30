@@ -15,6 +15,7 @@ type Player struct {
 	ID       string `json:"id"`
 	Username string `json:"username"`
 	Role     PlayerRole `json:"role"`
+	IsExecuted bool `json:"is_executed"`
 }
 
 func NewPlayer(id string, username string) Player {
@@ -22,5 +23,6 @@ func NewPlayer(id string, username string) Player {
 		ID:       id,
 		Username: username,
 		Role:     RoleUnassigned,
+		IsExecuted: false,
 	}
 }

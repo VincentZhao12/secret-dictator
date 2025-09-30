@@ -65,17 +65,18 @@ export interface GameState {
   peeker_index?: number /* int */;
   executed_players: string[];
   resume_order_index?: number /* int */;
+  winner?: Team;
 }
 
 //////////
 // source: phase.go
 
 export type GamePhase = string;
-export const Setup: GamePhase = "setup";
+export const Setup: GamePhase = "setup"; // TODO
 export const Nomination: GamePhase = "nomination";
 export const Election: GamePhase = "election";
-export const Legislation1: GamePhase = "legislation";
-export const Legislation2: GamePhase = "legislation";
+export const Legislation1: GamePhase = "legislation1";
+export const Legislation2: GamePhase = "legislation2";
 export const Executive: GamePhase = "executive";
 export const GameOver: GamePhase = "game_over";
 export const Paused: GamePhase = "paused";
@@ -94,3 +95,10 @@ export interface Player {
   username: string;
   role: PlayerRole;
 }
+
+//////////
+// source: team.go
+
+export type Team = string;
+export const TeamFascists: Team = "FASCISTS";
+export const TeamLiberal: Team = "LIBERALS";
