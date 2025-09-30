@@ -34,6 +34,9 @@ export function ActionPanel({
 }: ActionPanelProps) {
   const [selectedCard, setSelectedCard] = useState<number>(-1);
 
+  const currentPlayer = gameState.players[currentPlayerIndex];
+  const isCurrentPlayerDead = currentPlayer?.is_executed || false;
+
   const isCurrentPlayerTurn = (requiredIndex: number) => {
     return currentPlayerIndex === requiredIndex;
   };
@@ -248,27 +251,45 @@ export function ActionPanel({
 
   return useMemo(
     () => (
-      <div className="bg-orange-200/90 border-4 border-black rounded-xl p-6 shadow-[6px_6px_0px_black] mb-6">
+      <div
+        className={`border-4 border-black rounded-xl p-6 shadow-[6px_6px_0px_black] mb-6 ${
+          isCurrentPlayerDead ? "bg-gray-400/60 opacity-75" : "bg-orange-200/90"
+        }`}
+      >
         {/* Phase Title */}
         <div className="text-center mb-4">
-          <h3 className="font-propaganda text-xl tracking-wider text-black">
-            {getPhaseTitle()}
+          <h3
+            className={`font-propaganda text-xl tracking-wider ${
+              isCurrentPlayerDead ? "text-gray-600" : "text-black"
+            }`}
+          >
+            {isCurrentPlayerDead ? "YOU ARE DEAD" : getPhaseTitle()}
           </h3>
+          {isCurrentPlayerDead && (
+            <p className="text-gray-600 font-propaganda text-sm mt-2">
+              You cannot participate in the game
+            </p>
+          )}
         </div>
 
-        {/* Voting Interface */}
-        {renderVotingInterface()}
+        {/* Only show interactive content if player is alive */}
+        {!isCurrentPlayerDead && (
+          <>
+            {/* Voting Interface */}
+            {renderVotingInterface()}
 
-        {/* Policy Selection Interface */}
-        {renderPolicySelection()}
+            {/* Policy Selection Interface */}
+            {renderPolicySelection()}
 
-        {/* Executive Action Interface */}
-        {renderExecutiveAction()}
+            {/* Executive Action Interface */}
+            {renderExecutiveAction()}
 
-        {/* End Turn Button */}
-        {renderEndTurnButton()}
+            {/* End Turn Button */}
+            {renderEndTurnButton()}
+          </>
+        )}
       </div>
     ),
-    [gameState, currentPlayerIndex, selectedCard, onAction]
+    [gameState, currentPlayerIndex, selectedCard, onAction, isCurrentPlayerDead]
   );
 }

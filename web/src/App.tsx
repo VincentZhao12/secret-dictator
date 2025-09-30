@@ -20,16 +20,66 @@ function App() {
               <Game
                 state={{
                   players: [
-                    { id: "1", username: "Alice", role: "liberal" },
-                    { id: "2", username: "Bob", role: "fascist" },
-                    { id: "3", username: "Charlie", role: "hitler" },
-                    { id: "4", username: "Diana", role: "liberal" },
-                    { id: "5", username: "Eve", role: "hidden" },
-                    { id: "5", username: "Eve", role: "hidden" },
-                    { id: "5", username: "Eve", role: "hidden" },
-                    { id: "5", username: "Eve", role: "hidden" },
-                    { id: "5", username: "Eve", role: "hidden" },
-                    { id: "5", username: "Eve", role: "hidden" },
+                    {
+                      id: "1",
+                      username: "Alice",
+                      role: "liberal",
+                      is_executed: true,
+                    },
+                    {
+                      id: "2",
+                      username: "Bob",
+                      role: "fascist",
+                      is_executed: false,
+                    },
+                    {
+                      id: "3",
+                      username: "Charlie",
+                      role: "hitler",
+                      is_executed: false,
+                    },
+                    {
+                      id: "4",
+                      username: "Diana",
+                      role: "liberal",
+                      is_executed: false,
+                    },
+                    {
+                      id: "5",
+                      username: "Eve",
+                      role: "hidden",
+                      is_executed: true,
+                    },
+                    {
+                      id: "5",
+                      username: "Eve",
+                      role: "hidden",
+                      is_executed: false,
+                    },
+                    {
+                      id: "5",
+                      username: "Eve",
+                      role: "hidden",
+                      is_executed: false,
+                    },
+                    {
+                      id: "5",
+                      username: "Eve",
+                      role: "hidden",
+                      is_executed: false,
+                    },
+                    {
+                      id: "5",
+                      username: "Eve",
+                      role: "hidden",
+                      is_executed: false,
+                    },
+                    {
+                      id: "5",
+                      username: "Eve",
+                      role: "hidden",
+                      is_executed: false,
+                    },
                   ],
                   deck: [],
                   discard: [],
@@ -50,7 +100,8 @@ function App() {
                   pending_action: "",
                   peeked_cards: ["liberal", "fascist", "liberal"],
                   peeker_index: 0,
-                  executed_players: [],
+                  resume_order_index: -1,
+                  winner: "unassigned",
                 }}
               />
             }
