@@ -15,24 +15,24 @@ const (
 )
 
 type GameState struct {
-	Players 			[]Player 		`json:"players"`
-	PlayerIndexMap		map[string]int 	`json:"-"`
-	Deck    			[]Card 			`json:"deck"`
-	Discard 			[]Card 			`json:"discard"`
-	Board   			Board 			`json:"board"`
-	PresidentIndex 		int 			`json:"president_index"`
-	ChancellorIndex 	int 			`json:"chancellor_index"`
-	PrevPresidentIndex  int 			`json:"prev_president_index"`
-	PrevChancellorIndex int 			`json:"prev_chancellor_index"`
-	NomineeIndex    	int 			`json:"nominee_index"`
-	Phase            	GamePhase 		`json:"phase"`
-	Votes            	[]VoteResult 	`json:"votes,omitempty"`
-	PendingAction      	*Action     	`json:"pending_action,omitempty"`
-	PeekedCards        	[]Card      	`json:"peeked_cards,omitempty"`
-	PeekerIndex			int      		`json:"peeker_index,omitempty"`
-	ResumeOrderIndex	int 			`json:"resume_order_index,omitempty"` // Post special election
-	ResumePhase			GamePhase		`json:"resume_phase,omitempty"`
-	Winner				Team 			`json:"winner,omitempty"`
+	Players             []Player       `json:"players"`
+	PlayerIndexMap      map[string]int `json:"-"`
+	Deck                []Card         `json:"deck"`
+	Discard             []Card         `json:"discard"`
+	Board               Board          `json:"board"`
+	PresidentIndex      int            `json:"president_index"`
+	ChancellorIndex     int            `json:"chancellor_index"`
+	PrevPresidentIndex  int            `json:"prev_president_index"`
+	PrevChancellorIndex int            `json:"prev_chancellor_index"`
+	NomineeIndex        int            `json:"nominee_index"`
+	Phase               GamePhase      `json:"phase"`
+	Votes               []VoteResult   `json:"votes,omitempty"`
+	PendingAction       *Action        `json:"pending_action,omitempty"`
+	PeekedCards         []Card         `json:"peeked_cards,omitempty"`
+	PeekerIndex         int            `json:"peeker_index,omitempty"`
+	ResumeOrderIndex    int            `json:"resume_order_index,omitempty"` // Post special election
+	ResumePhase         GamePhase      `json:"resume_phase,omitempty"`
+	Winner              Team           `json:"winner,omitempty"`
 }
 
 func createDeck() []Card {
@@ -48,23 +48,23 @@ func createDeck() []Card {
 
 func NewGameState() GameState {
 	return GameState{
-		Players:       		[]Player{},
-		PlayerIndexMap:     make(map[string]int),
-		Deck:          		[]Card{},
-		Discard:       		[]Card{},
-		Board:         		Board{},
-		PresidentIndex:     -1,
-		ChancellorIndex:    -1,
-		PrevPresidentIndex: -1,
-		PrevChancellorIndex:-1,
-		NomineeIndex:       -1,
-		Phase:         		Setup,
-		Votes:         		nil,
-		PendingAction:      nil,
-		PeekedCards:      	nil,
-		PeekerIndex:        -1,
-		ResumeOrderIndex:	-1,
-		Winner:				TeamUnassigned,
+		Players:             []Player{},
+		PlayerIndexMap:      make(map[string]int),
+		Deck:                []Card{},
+		Discard:             []Card{},
+		Board:               Board{},
+		PresidentIndex:      -1,
+		ChancellorIndex:     -1,
+		PrevPresidentIndex:  -1,
+		PrevChancellorIndex: -1,
+		NomineeIndex:        -1,
+		Phase:               Setup,
+		Votes:               nil,
+		PendingAction:       nil,
+		PeekedCards:         nil,
+		PeekerIndex:         -1,
+		ResumeOrderIndex:    -1,
+		Winner:              TeamUnassigned,
 	}
 }
 
@@ -74,7 +74,7 @@ func (state *GameState) AddPlayer(id string, username string) (*Player, error) {
 	}
 
 	if len(state.Players) >= 10 {
-		return nil,repository.ErrGameFull
+		return nil, repository.ErrGameFull
 	}
 
 	if state.Phase != Setup {
@@ -109,7 +109,7 @@ func (state *GameState) RemovePlayer(id string) error {
 func (state *GameState) AssignRoles() error {
 	numPlayers := len(state.Players)
 	var roles []PlayerRole
-	
+
 	switch numPlayers {
 	case 5:
 		roles = []PlayerRole{RoleHitler, RoleFascist, RoleLiberal, RoleLiberal, RoleLiberal}
@@ -145,7 +145,7 @@ func (state *GameState) StartGame() error {
 	if len(state.Players) < 5 || len(state.Players) > 10 {
 		return repository.ErrInvalidPlayerCount
 	}
-	
+
 	board, err := NewBoard(len(state.Players))
 	if err != nil {
 		return err
@@ -189,13 +189,13 @@ func (state *GameState) RevealPlayer(forPlayer Player, player Player) GameState 
 	}
 
 	// Obfuscate hands
-	if forPlayer.ID != obfuscatedState.Players[obfuscatedState.PeekerIndex].ID{
+	if forPlayer.ID != obfuscatedState.Players[obfuscatedState.PeekerIndex].ID {
 		obfuscatedState.PeekedCards = nil
 	}
 
 	// Obfuscate player information
 	for i, player := range obfuscatedState.Players {
-		if forPlayer.Role != RoleFascist &&  player.ID != forPlayer.ID {
+		if forPlayer.Role != RoleFascist && player.ID != forPlayer.ID {
 			obfuscatedState.Players[i].Role = RoleHidden
 		}
 
@@ -204,7 +204,6 @@ func (state *GameState) RevealPlayer(forPlayer Player, player Player) GameState 
 
 	return obfuscatedState
 }
-
 
 func (state *GameState) ObfuscateGameState(p Player) GameState {
 	obfuscatedState := *state
@@ -220,17 +219,17 @@ func (state *GameState) ObfuscateGameState(p Player) GameState {
 	}
 
 	// Obfuscate hands
-	if p.ID != obfuscatedState.Players[obfuscatedState.PeekerIndex].ID{
+	if p.ID != obfuscatedState.Players[obfuscatedState.PeekerIndex].ID {
 		obfuscatedState.PeekedCards = nil
 	}
 
 	// Obfuscate player information
 	for i, player := range obfuscatedState.Players {
-		if p.Role != RoleFascist &&  player.ID != p.ID {
+		if p.Role != RoleFascist && player.ID != p.ID {
 			obfuscatedState.Players[i].Role = RoleHidden
 		}
 
-		if  player.ID != p.ID {
+		if player.ID != p.ID {
 			player.ID = ""
 		}
 	}
@@ -268,7 +267,7 @@ func (state *GameState) NewTurn() {
 	state.Phase = Nomination
 	state.PrevPresidentIndex = state.PresidentIndex
 	state.PrevChancellorIndex = state.ChancellorIndex
-	
+
 	if state.ResumeOrderIndex != -1 {
 		state.PresidentIndex = state.ResumeOrderIndex
 		state.ResumeOrderIndex = -1
@@ -301,6 +300,6 @@ func (state *GameState) PlaceCard(card Card) bool {
 		action := state.Board.ExecutiveActions[state.Board.FascistPolicies]
 		state.PendingAction = &action
 	}
-	
+
 	return state.EndGameIfNecessary()
 }

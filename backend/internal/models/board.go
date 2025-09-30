@@ -8,18 +8,18 @@ type ElectionTracker struct {
 }
 
 type Board struct {
-	LiberalPolicies 	int `json:"liberal_policies"`
-	FascistPolicies 	int `json:"fascist_policies"`
-	FascistSlots   		int `json:"fascist_slots"`
-	LiberalSlots   		int `json:"liberal_slots"`
-	ExecutiveActions    map[int]Action `json:"executive_actions"`
-	ElectionTracker  	ElectionTracker `json:"election_tracker"`
+	LiberalPolicies  int             `json:"liberal_policies"`
+	FascistPolicies  int             `json:"fascist_policies"`
+	FascistSlots     int             `json:"fascist_slots"`
+	LiberalSlots     int             `json:"liberal_slots"`
+	ExecutiveActions map[int]Action  `json:"executive_actions"`
+	ElectionTracker  ElectionTracker `json:"election_tracker"`
 }
 
 func NewBoard(players int) (Board, error) {
 	board := Board{
-		LiberalPolicies: 0,
-		FascistPolicies: 0,
+		LiberalPolicies:  0,
+		FascistPolicies:  0,
 		ExecutiveActions: make(map[int]Action),
 		ElectionTracker: ElectionTracker{
 			FailedElections: 0,

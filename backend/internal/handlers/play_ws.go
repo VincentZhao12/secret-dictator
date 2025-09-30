@@ -12,10 +12,10 @@ import (
 var upgrader = websocket.Upgrader{
 	ReadBufferSize:  1024,
 	WriteBufferSize: 1024,
-	CheckOrigin: func(r *http.Request) bool { return true }, // In production, verify origin
+	CheckOrigin:     func(r *http.Request) bool { return true }, // In production, verify origin
 }
 
-func Play(Manager *game.Manager) http.HandlerFunc{
+func Play(Manager *game.Manager) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		conn, err := upgrader.Upgrade(w, r, nil)
 		if err != nil {

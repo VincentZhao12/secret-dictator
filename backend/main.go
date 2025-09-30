@@ -11,6 +11,6 @@ import (
 func main() {
 	m := game.NewManager()
 	r := routes.SetupRouter(m)
-    fmt.Println("Listening on :8080")
-    http.ListenAndServe(":8080", r)
+	fmt.Println("Listening on :8080")
+	http.ListenAndServe(":8080", r)
 }

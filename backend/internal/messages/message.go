@@ -8,8 +8,8 @@ type Message interface {
 }
 
 type BaseMessage struct {
-	Type    	  MessageType `json:"type"`
-	SenderID string `json:"sender_id"`
+	Type     MessageType `json:"type"`
+	SenderID string      `json:"sender_id"`
 }
 
 func (m *BaseMessage) GetType() MessageType {

@@ -28,13 +28,13 @@ func CreateGame(Manager *game.Manager) http.HandlerFunc {
 }
 
 type JoinGameRequest struct {
-	GameID string `json:"game_id"`
-	Username string `json:"username"` 
+	GameID   string `json:"game_id"`
+	Username string `json:"username"`
 }
 
 type JoinGameResponse struct {
-	GameID string `json:"game_id"`
-	PlayerID string `json:"player_id"` 
+	GameID   string `json:"game_id"`
+	PlayerID string `json:"player_id"`
 }
 
 func JoinGame(Manager *game.Manager) http.HandlerFunc {
@@ -48,18 +48,18 @@ func JoinGame(Manager *game.Manager) http.HandlerFunc {
 		}
 
 		game, exists := Manager.GetGame(req.GameID)
-		if game == nil  || !exists {
+		if game == nil || !exists {
 			http.Error(w, "Invalid game id", http.StatusBadRequest)
 		}
-		
-		player, err := game.NewPlayer(req.Username);
+
+		player, err := game.NewPlayer(req.Username)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
 
 		resp := JoinGameResponse{
-			GameID: game.ID,
+			GameID:   game.ID,
 			PlayerID: player.ID,
 		}
 

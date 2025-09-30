@@ -6,7 +6,7 @@ import (
 
 type Manager struct {
 	Games map[string]*Game
-	mu   sync.RWMutex
+	mu    sync.RWMutex
 }
 
 func NewManager() *Manager {
