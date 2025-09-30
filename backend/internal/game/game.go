@@ -59,6 +59,15 @@ func (g *Game) validateActionMessage(message messages.ActionMessage, requiresPre
 		return messages.NewActionErrorMessage(message.SenderID, messages.InvalidTarget)
 	}
 
+
+	if requiresTarget && g.state.Players[message.TargetIndex].IsExecuted {
+		return messages.NewActionErrorMessage(message.SenderID, messages.InvalidTarget)
+	}
+
+	if g.state.Players[g.state.PlayerIndexMap[message.SenderID]].IsExecuted {
+		return messages.NewActionErrorMessage(message.SenderID, messages.NotAllowed)
+	}
+
 	return nil
 
 }
@@ -72,7 +81,10 @@ func (g *Game) NewTurn() {
 		g.state.PresidentIndex = g.state.ResumeOrderIndex
 		g.state.ResumeOrderIndex = -1
 	} else {
-		g.state.PresidentIndex = (g.state.PresidentIndex + 1) % len(g.state.Players)
+		nextPresidentIndex := (g.state.PresidentIndex + 1) % len(g.state.Players)
+		for g.state.Players[nextPresidentIndex].IsExecuted {
+			nextPresidentIndex = (nextPresidentIndex + 1) % len(g.state.Players)
+		}
 	}
 
 	g.state.ChancellorIndex = -1
@@ -86,9 +98,10 @@ func (g *Game) NewTurn() {
 }
 
 func (g *Game) PlaceCard(card models.Card) bool {
-	if card == models.CardFascist {
+	switch card {
+	case models.CardFascist:
 		g.state.Board.FascistPolicies++
-	} else if card == models.CardLiberal {
+	case models.CardLiberal:
 		g.state.Board.LiberalPolicies++
 	}
 
@@ -101,9 +114,11 @@ func (g *Game) PlaceCard(card models.Card) bool {
 	
 	if g.state.Board.FascistPolicies >= g.state.Board.FascistSlots {
 		g.state.Phase = models.GameOver
+		g.state.Winner = models.TeamFascists
 		return true
 	} else if g.state.Board.LiberalPolicies >= g.state.Board.LiberalSlots {
 		g.state.Phase = models.GameOver
+		g.state.Winner = models.TeamLiberal
 		return true
 	}
 	return false
@@ -164,6 +179,12 @@ func (g *Game) ProcessActionMessage(message messages.ActionMessage) messages.Mes
 			if g.state.Phase != models.Executive {
 				return messages.NewActionErrorMessage(message.SenderID, messages.NotAllowed) 
 			}
+			g.state.PeekedCards = g.state.Deck[:3]
+
+			return messages.NewGameStateMessage(
+				"server",
+				g.state,
+			)
 
 		case models.ActionExecution:
 			if errorMessage := g.validateActionMessage(message, true, true); errorMessage != nil {
@@ -173,7 +194,15 @@ func (g *Game) ProcessActionMessage(message messages.ActionMessage) messages.Mes
 			if g.state.Phase != models.Executive {
 				return messages.NewActionErrorMessage(message.SenderID, messages.NotAllowed) 
 			}
-			
+
+			g.state.Players[message.TargetIndex].IsExecuted = true
+			g.NewTurn()
+
+			return messages.NewGameStateMessage(
+				"server",
+				g.state,
+			)
+
 		case models.ActionVote:
 			if errorMessage := g.validateActionMessage(message, false, true); errorMessage != nil {
 				return errorMessage
@@ -281,12 +310,13 @@ func (g *Game) ProcessActionMessage(message messages.ActionMessage) messages.Mes
 				return messages.NewActionErrorMessage(message.SenderID, messages.InvalidAction) 
 			}
 
-			if g.state.Phase == models.Legislation1 {
+			switch g.state.Phase {
+			case models.Legislation1:
 				g.state.Discard = append(g.state.Discard, g.state.PeekedCards[message.TargetIndex])
 				g.state.PeekedCards = append(g.state.PeekedCards[:message.TargetIndex], g.state.PeekedCards[message.TargetIndex+1:]...)
 				g.state.Phase = models.Legislation2
 				g.state.PeekerIndex = g.state.ChancellorIndex
-			} else if g.state.Phase == models.Legislation2 {
+			case models.Legislation2:
 				removedCard := g.state.PeekedCards[message.TargetIndex]
 				g.state.Discard = append(g.state.Discard, g.state.PeekedCards[message.TargetIndex])
 				g.state.PeekedCards = nil
@@ -311,7 +341,20 @@ func (g *Game) ProcessActionMessage(message messages.ActionMessage) messages.Mes
 		case models.ActionRejectVeto:
 
 		case models.ActionEndTurn:
-			
+			if errorMessage := g.validateActionMessage(message, false, false); errorMessage != nil {
+				return errorMessage
+			}
+
+			if g.state.Phase != models.Executive {
+				return messages.NewActionErrorMessage(message.SenderID, messages.NotAllowed) 
+			}
+
+			g.NewTurn()
+
+			return messages.NewGameStateMessage(
+				"server",
+				g.state,
+			)
 	}
 
 	return messages.NewActionErrorMessage(message.SenderID, messages.InvalidAction)

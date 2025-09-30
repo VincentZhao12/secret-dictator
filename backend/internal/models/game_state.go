@@ -30,8 +30,8 @@ type GameState struct {
 	PendingAction      	*Action     	`json:"pending_action,omitempty"`
 	PeekedCards        	[]Card      	`json:"peeked_cards,omitempty"`
 	PeekerIndex			int      		`json:"peeker_index,omitempty"`
-	ExecutedPlayers    	[]string    	`json:"executed_players"`
 	ResumeOrderIndex	int 			`json:"resume_order_index,omitempty"`
+	Winner				Team 			`json:"winner,omitempty"`
 }
 
 func createDeck() []Card {
@@ -61,8 +61,9 @@ func NewGameState() GameState {
 		Votes:         		nil,
 		PendingAction:      nil,
 		PeekedCards:      	nil,
-		PeekerIndex:         	-1,
-		ExecutedPlayers:    []string{},
+		PeekerIndex:        -1,
+		ResumeOrderIndex:	-1,
+		Winner:				TeamUnassigned,
 	}
 }
 
@@ -228,7 +229,9 @@ func (state *GameState) ObfuscateGameState(p Player) GameState {
 			obfuscatedState.Players[i].Role = RoleHidden
 		}
 
-		player.ID = ""
+		if  player.ID != p.ID {
+			player.ID = ""
+		}
 	}
 
 	return obfuscatedState

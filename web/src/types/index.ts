@@ -119,7 +119,6 @@ export interface GameState {
   pending_action?: Action;
   peeked_cards?: Card[];
   peeker_index?: number /* int */;
-  executed_players: string[];
   resume_order_index?: number /* int */;
   winner?: Team;
 }
@@ -150,11 +149,13 @@ export interface Player {
   id: string;
   username: string;
   role: PlayerRole;
+  is_executed: boolean;
 }
 
 //////////
 // source: team.go
 
 export type Team = string;
+export const TeamUnassigned: Team = "UNASSIGNED";
 export const TeamFascists: Team = "FASCISTS";
 export const TeamLiberal: Team = "LIBERALS";
