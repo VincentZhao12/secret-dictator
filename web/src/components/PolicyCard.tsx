@@ -1,4 +1,4 @@
-import { CardFascist, CardLiberal, type Card } from "@types";
+import { CardFascist, CardHidden, CardLiberal, type Card } from "@types";
 
 interface PolicyCardProps {
   type: Card;
@@ -12,6 +12,7 @@ export function PolicyCard({ type, onClick }: PolicyCardProps) {
   const typeClasses = {
     [CardLiberal]: "bg-blue-500 shadow-[3px_3px_0px_black]",
     [CardFascist]: "bg-orange-600 shadow-[3px_3px_0px_black]",
+    [CardHidden]: "bg-purple-600 shadow-[3px_3px_0px_black]",
   };
   return (
     <div className={`${baseClasses} ${typeClasses[type]}`} onClick={onClick}>
