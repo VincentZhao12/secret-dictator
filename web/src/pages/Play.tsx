@@ -32,6 +32,7 @@ export default function Play() {
         state={gameState}
         currentPlayerId={playerId ?? ""}
         onAction={sendMessage}
+        gameId={gameId ?? ""}
       />
     </>
   );

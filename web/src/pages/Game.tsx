@@ -7,14 +7,23 @@ import {
   Election,
   Nomination,
   Executive,
+  Setup,
 } from "@types";
-import { useMemo } from "react";
-import { FaCrown, FaGavel, FaSkull, FaWifi } from "react-icons/fa";
+import { useMemo, useState } from "react";
+import {
+  FaCrown,
+  FaGavel,
+  FaSkull,
+  FaWifi,
+  FaLink,
+  FaCheck,
+} from "react-icons/fa";
 
 interface GameProps {
   state: GameState;
   currentPlayerId: string;
   onAction: (msg: ActionMessage) => void;
+  gameId: string;
 }
 
 interface PlayerCardProps {
@@ -176,7 +185,14 @@ function PlayerRow({
   );
 }
 
-export default function Game({ state, currentPlayerId, onAction }: GameProps) {
+export default function Game({
+  state,
+  currentPlayerId,
+  onAction,
+  gameId,
+}: GameProps) {
+  const [copied, setCopied] = useState(false);
+
   // Find current player index from ID
   const currentPlayerIndex = state.players.findIndex(
     (player) => player.id === currentPlayerId
@@ -185,6 +201,17 @@ export default function Game({ state, currentPlayerId, onAction }: GameProps) {
   const currentPlayer =
     currentPlayerIndex >= 0 ? state.players[currentPlayerIndex] : null;
   const isCurrentPlayerDead = currentPlayer?.is_executed || false;
+
+  const handleCopyInviteLink = async () => {
+    const inviteUrl = `${window.location.origin}/join?game=${gameId}`;
+    try {
+      await navigator.clipboard.writeText(inviteUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error("Failed to copy invite link:", err);
+    }
+  };
 
   const handlePlayerClick = (playerId: string, playerIndex: number) => {
     console.log(`Clicked player: ${playerId} at index ${playerIndex}`);
@@ -220,6 +247,28 @@ export default function Game({ state, currentPlayerId, onAction }: GameProps) {
 
   return (
     <>
+      {/* Invite Link Button - Top Right */}
+      {state.phase === Setup && (
+        <div className="fixed top-6 right-6 z-40">
+          <button
+            onClick={handleCopyInviteLink}
+            className="bg-orange-600 hover:bg-orange-700 text-black px-4 py-3 rounded-lg border-4 border-black shadow-[4px_4px_0px_black] font-propaganda font-bold tracking-wider uppercase transition-all duration-200 hover:scale-105 flex items-center space-x-2"
+          >
+            {copied ? (
+              <>
+                <FaCheck className="text-sm" />
+                <span>COPIED!</span>
+              </>
+            ) : (
+              <>
+                <FaLink className="text-sm" />
+                <span>INVITE LINK</span>
+              </>
+            )}
+          </button>
+        </div>
+      )}
+
       {/* Full screen overlay for dead players */}
       {isCurrentPlayerDead && (
         <div className="fixed inset-0 bg-black/30 z-50 pointer-events-none">
