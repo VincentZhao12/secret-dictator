@@ -224,6 +224,15 @@ function PlayerRow({
       </div>
     </div>
   );
+  //   [
+  //     players,
+  //     presidentIndex,
+  //     chancellorIndex,
+  //     nomineeIndex,
+  //     currentPlayerId,
+  //     onPlayerClick,
+  //   ]
+  // );
 }
 
 export default function Game({
