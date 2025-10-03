@@ -1,8 +1,10 @@
 import { useGameState } from "@hooks";
 import Game from "./Game";
+import { useToast } from "../contexts/ToastContext";
 
 export default function Play() {
   // const { gameId, playerId } = useGameParams();
+  const { showError } = useToast();
 
   const queryString = window.location.search;
   const urlParams = new URLSearchParams(queryString);
@@ -19,7 +21,10 @@ export default function Play() {
   const { gameState, isConnected, sendMessage } = useGameState(
     gameId ?? "",
     getPlayerId(),
-    (error) => console.log(error)
+    (error) => {
+      console.log(error);
+      showError(error.message);
+    }
   );
 
   if (!gameState || !isConnected) {

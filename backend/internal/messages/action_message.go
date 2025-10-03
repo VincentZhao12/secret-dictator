@@ -36,7 +36,7 @@ const (
 )
 
 type ActionErrorMessage struct {
-	BaseMessage
+	BaseMessage `json:"base_message" tstype:"BaseMessage"`
 	Reason ActionErrorReason `json:"reason"`
 }
 
