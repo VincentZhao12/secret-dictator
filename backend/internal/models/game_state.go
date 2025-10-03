@@ -77,7 +77,7 @@ func (state *GameState) AddPlayer(id string, username string) (*Player, error) {
 		return nil, repository.ErrGameFull
 	}
 
-	if state.Phase != Setup {
+	if state.Phase != Setup && (state.Phase == Paused && state.ResumePhase == Setup) {
 		return nil, repository.ErrGameInProgress
 	}
 

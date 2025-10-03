@@ -84,7 +84,7 @@ func (g *Game) DropConnection(id string) error {
 		return repository.ErrPlayerNotFound
 	}
 
-	g.state.Players[playerIndex].IsConnected = true
+	g.state.Players[playerIndex].IsConnected = false
 	delete(g.Connections, id)
 	if g.state.Phase != models.GameOver {
 		g.state.ResumePhase = g.state.Phase
