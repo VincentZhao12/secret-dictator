@@ -4,7 +4,6 @@ import {
   type Player,
   type PlayerRole,
   type ActionMessage,
-  Election,
   Nomination,
   Executive,
   Setup,
@@ -31,6 +30,7 @@ interface PlayerCardProps {
   index: number;
   isPresident: boolean;
   isChancellor: boolean;
+  isNominee: boolean;
   isCurrentPlayer: boolean;
   onClick: (playerId: string, playerIndex: number) => void;
 }
@@ -40,6 +40,7 @@ function PlayerCard({
   index,
   isPresident,
   isChancellor,
+  isNominee,
   isCurrentPlayer,
   onClick,
 }: PlayerCardProps) {
@@ -120,6 +121,13 @@ function PlayerCard({
             <FaGavel className="text-white text-sm" />
           </div>
         )}
+        {isNominee && !player.is_executed && !isChancellor && (
+          <div className="absolute -bottom-2 -left-2 bg-purple-300 text-black px-2 py-0.5 rounded-full border-2 border-black shadow-[2px_2px_0px_black]">
+            <span className="text-[10px] font-propaganda font-bold tracking-wider">
+              NOMINEE
+            </span>
+          </div>
+        )}
 
         {/* Username */}
         <div className="pt-2 pb-1 text-center">
@@ -152,6 +160,7 @@ interface PlayerRowProps {
   players: Player[];
   presidentIndex: number;
   chancellorIndex: number;
+  nomineeIndex: number;
   currentPlayerId: string;
   onPlayerClick: (playerId: string, playerIndex: number) => void;
 }
@@ -160,29 +169,40 @@ function PlayerRow({
   players,
   presidentIndex,
   chancellorIndex,
+  nomineeIndex,
   currentPlayerId,
   onPlayerClick,
 }: PlayerRowProps) {
-  return useMemo(
-    () => (
-      <div className="w-full overflow-x-auto mb-8 pt-4 pb-4">
-        <div className="flex justify-start space-x-4 min-w-max px-4">
-          {players.map((player, index) => (
-            <PlayerCard
-              key={player.id}
-              player={player}
-              index={index}
-              isPresident={index === presidentIndex}
-              isChancellor={index === chancellorIndex}
-              isCurrentPlayer={player.id === currentPlayerId}
-              onClick={onPlayerClick}
-            />
-          ))}
-        </div>
+  console.log(players);
+  // return useMemo(
+  //   () => (
+  return (
+    <div className="w-full overflow-x-auto mb-8 pt-4 pb-4">
+      <div className="flex justify-start space-x-4 min-w-max px-4">
+        {players.map((player, index) => (
+          <PlayerCard
+            key={player.id}
+            player={player}
+            index={index}
+            isPresident={index === presidentIndex}
+            isChancellor={index === chancellorIndex}
+            isNominee={index === nomineeIndex}
+            isCurrentPlayer={player.id === currentPlayerId}
+            onClick={onPlayerClick}
+          />
+        ))}
       </div>
-    ),
-    [players, presidentIndex, chancellorIndex, currentPlayerId, onPlayerClick]
+    </div>
   );
+  //   [
+  //     players,
+  //     presidentIndex,
+  //     chancellorIndex,
+  //     nomineeIndex,
+  //     currentPlayerId,
+  //     onPlayerClick,
+  //   ]
+  // );
 }
 
 export default function Game({
@@ -298,6 +318,7 @@ export default function Game({
             players={state.players}
             presidentIndex={state.president_index}
             chancellorIndex={state.chancellor_index}
+            nomineeIndex={state.nominee_index}
             currentPlayerId={currentPlayerId}
             onPlayerClick={handlePlayerClick}
           />
