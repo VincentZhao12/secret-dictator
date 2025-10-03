@@ -300,18 +300,38 @@ export function ActionPanel({
     if (!isHost || !isSetupPhase) return null;
 
     return (
-      <div className="flex justify-center">
-        <Button
+      <div className="flex flex-col items-center space-y-4">
+        <button
           onClick={handleStartGame}
           disabled={!hasEnoughPlayers}
-          className="bg-green-600 hover:bg-green-700 text-white font-propaganda text-lg px-8 py-4 flex items-center space-x-3 disabled:opacity-50 disabled:cursor-not-allowed"
+          className={`
+            relative overflow-hidden
+            font-propaganda text-2xl tracking-wider
+            px-12 py-6
+            border-4 border-black rounded-xl
+            shadow-[6px_6px_0px_black]
+            transition-all duration-200
+            flex items-center justify-center space-x-4
+            ${
+              hasEnoughPlayers
+                ? "bg-green-500 hover:bg-green-600 hover:scale-105 active:scale-95 active:shadow-[3px_3px_0px_black] cursor-pointer text-white"
+                : "bg-gray-400 cursor-not-allowed opacity-60 text-gray-600"
+            }
+          `}
         >
-          <FaPlay />
+          <FaPlay className="text-2xl" />
           <span>START GAME</span>
-        </Button>
+        </button>
         {!hasEnoughPlayers && (
-          <p className="text-red-600 font-propaganda text-sm mt-2">
-            Need at least 5 players to start
+          <div className="bg-red-200/90 border-4 border-black rounded-lg px-6 py-3 shadow-[4px_4px_0px_black]">
+            <p className="text-red-800 font-propaganda text-sm tracking-wide">
+              ⚠️ Need at least 5 players to start
+            </p>
+          </div>
+        )}
+        {hasEnoughPlayers && (
+          <p className="text-green-700 font-propaganda text-sm tracking-wide">
+            ✓ Ready to begin!
           </p>
         )}
       </div>
