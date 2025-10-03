@@ -35,15 +35,15 @@ func generateRandomID(length int) string {
 }
 
 func NewGame(manager *Manager) *Game {
-    g := &Game{
-        ID:          generateRandomID(8),
-        state:       models.NewGameState(),
-        manager:     manager,
-        Connections: make(map[string]*websocket.Conn),
-        ActionChan:  make(chan messages.ActionMessage),
-    }
-    go g.Run()
-    return g
+	g := &Game{
+		ID:          generateRandomID(8),
+		state:       models.NewGameState(),
+		manager:     manager,
+		Connections: make(map[string]*websocket.Conn),
+		ActionChan:  make(chan messages.ActionMessage),
+	}
+	go g.Run()
+	return g
 }
 
 func (g *Game) SetHostID(id string) {
@@ -52,12 +52,12 @@ func (g *Game) SetHostID(id string) {
 }
 
 func (g *Game) AddConnection(id string, conn *websocket.Conn) error {
-    g.connMu.Lock()
+	g.connMu.Lock()
 	playerIndex, exists := g.state.PlayerIndexMap[id]
 	if !exists {
 		fmt.Println("player doesnt exist")
-        g.connMu.Unlock()
-        return repository.ErrPlayerNotFound
+		g.connMu.Unlock()
+		return repository.ErrPlayerNotFound
 	}
 
 	if oldConn, exists := g.Connections[id]; exists && oldConn != nil {
@@ -75,16 +75,16 @@ func (g *Game) AddConnection(id string, conn *websocket.Conn) error {
 		g.state.Phase = g.state.ResumePhase
 		g.state.ResumePhase = ""
 	}
-    playerForState := g.state.GetPlayer(g.state.PlayerIndexMap[id])
-    g.connMu.Unlock()
+	playerForState := g.state.GetPlayerByID(id)
+	g.connMu.Unlock()
 
-    if playerForState != nil {
-        conn.WriteJSON(messages.NewGameStateMessage(
-            "server",
-            g.state.ObfuscateGameState(*playerForState),
-        ))
-    }
-    g.broadcastGameState()
+	if playerForState != nil {
+		conn.WriteJSON(messages.NewGameStateMessage(
+			"server",
+			g.state.ObfuscateGameState(*playerForState),
+		))
+	}
+	g.broadcastGameState()
 
 	return nil
 }
@@ -94,11 +94,11 @@ func (g *Game) CanBeDeleted() bool {
 }
 
 func (g *Game) DropConnection(id string) error {
-    g.connMu.Lock()
+	g.connMu.Lock()
 	playerIndex, exists := g.state.PlayerIndexMap[id]
 	if !exists {
-        g.connMu.Unlock()
-        return repository.ErrPlayerNotFound
+		g.connMu.Unlock()
+		return repository.ErrPlayerNotFound
 	}
 
 	player := g.state.GetPlayer(playerIndex)
@@ -115,22 +115,22 @@ func (g *Game) DropConnection(id string) error {
 	if g.state.Phase == models.Setup {
 		err := g.state.RemovePlayer(player.ID)
 		if err != nil {
-            g.connMu.Unlock()
-            return err
+			g.connMu.Unlock()
+			return err
 		}
 		if len(g.state.Players) == 0 {
-            g.connMu.Unlock()
-            return nil
+			g.connMu.Unlock()
+			return nil
 		}
 		fmt.Println(g.HostID, id)
 		if g.HostID == id {
 			g.SetHostID(g.state.Players[0].ID)
 		}
 	}
-    g.connMu.Unlock()
-    g.broadcastGameState()
+	g.connMu.Unlock()
+	g.broadcastGameState()
 
-    return nil
+	return nil
 }
 
 func (g *Game) EndGame(winner models.Team) {
@@ -156,26 +156,26 @@ func (g *Game) NewPlayer(username string) (*models.Player, error) {
 }
 
 func (g *Game) broadcastGameState() {
-    g.connMu.RLock()
-    snapshot := make(map[string]*websocket.Conn, len(g.Connections))
-    for id, conn := range g.Connections {
-        snapshot[id] = conn
-    }
-    g.connMu.RUnlock()
+	g.connMu.RLock()
+	snapshot := make(map[string]*websocket.Conn, len(g.Connections))
+	for id, conn := range g.Connections {
+		snapshot[id] = conn
+	}
+	g.connMu.RUnlock()
 
-    for id, conn := range snapshot {
-        if conn != nil {
-            player := g.state.GetPlayer(g.state.PlayerIndexMap[id])
-            if player != nil {
-                if err := conn.WriteJSON(messages.NewGameStateMessage(
-                    "server",
-                    g.state.ObfuscateGameState(*player),
-                )); err != nil {
-                    println("error sending message")
-                }
-            }
-        }
-    }
+	for id, conn := range snapshot {
+		if conn != nil {
+			player := g.state.GetPlayerByID(id)
+			if player != nil {
+				if err := conn.WriteJSON(messages.NewGameStateMessage(
+					"server",
+					g.state.ObfuscateGameState(*player),
+				)); err != nil {
+					println("error sending message")
+				}
+			}
+		}
+	}
 }
 
 func (g *Game) validateActionMessage(message messages.ActionMessage, requiresPresident bool, requiresTarget bool) *messages.ActionErrorMessage {
@@ -193,7 +193,7 @@ func (g *Game) validateActionMessage(message messages.ActionMessage, requiresPre
 		return messages.NewActionErrorMessage(message.SenderID, messages.InvalidTarget)
 	}
 
-	sender := g.state.GetPlayer(g.state.PlayerIndexMap[message.SenderID])
+	sender := g.state.GetPlayerByID(message.SenderID)
 	if sender != nil && sender.IsExecuted {
 		return messages.NewActionErrorMessage(message.SenderID, messages.NotAllowed)
 	}
@@ -220,7 +220,7 @@ func (g *Game) Run() {
 		g.connMu.RLock()
 		conn, exists := g.Connections[message.SenderID]
 		g.connMu.RUnlock()
-		
+
 		if !exists || conn == nil {
 			continue
 		}
@@ -234,6 +234,10 @@ func (g *Game) Run() {
 
 // SHOULD BE IDIOMATIC
 func (g *Game) ProcessActionMessage(message messages.ActionMessage) messages.Message {
+	p := g.state.GetPlayerByID(message.SenderID)
+	if p == nil {
+		return messages.NewActionErrorMessage(message.SenderID, messages.NotAllowed)
+	}
 	switch message.Action {
 	case models.ActionStartGame:
 		// Only host can start the game
@@ -250,7 +254,7 @@ func (g *Game) ProcessActionMessage(message messages.ActionMessage) messages.Mes
 
 		return messages.NewGameStateMessage(
 			"server",
-			g.state,
+			g.state.ObfuscateGameState(*p),
 		)
 
 	case models.ActionInvestigate:
@@ -299,7 +303,7 @@ func (g *Game) ProcessActionMessage(message messages.ActionMessage) messages.Mes
 
 		return messages.NewGameStateMessage(
 			"server",
-			g.state,
+			g.state.ObfuscateGameState(*p),
 		)
 
 	case models.ActionPolicyPeek:
@@ -314,7 +318,7 @@ func (g *Game) ProcessActionMessage(message messages.ActionMessage) messages.Mes
 
 		return messages.NewGameStateMessage(
 			"server",
-			g.state,
+			g.state.ObfuscateGameState(*p),
 		)
 
 	case models.ActionExecution:
@@ -339,7 +343,7 @@ func (g *Game) ProcessActionMessage(message messages.ActionMessage) messages.Mes
 
 		return messages.NewGameStateMessage(
 			"server",
-			g.state,
+			g.state.ObfuscateGameState(*p),
 		)
 
 	case models.ActionVote:
@@ -378,6 +382,8 @@ func (g *Game) ProcessActionMessage(message messages.ActionMessage) messages.Mes
 				g.state.Phase = models.Legislation1
 				g.state.PeekerIndex = g.state.PresidentIndex
 
+				fmt.Println(g.state.Deck)
+
 				// Draw 3 cards
 				if len(g.state.Deck) < 3 {
 					g.state.ShuffleDeck()
@@ -406,7 +412,7 @@ func (g *Game) ProcessActionMessage(message messages.ActionMessage) messages.Mes
 
 		return messages.NewGameStateMessage(
 			"server",
-			g.state,
+			g.state.ObfuscateGameState(*p),
 		)
 
 	case models.ActionNominate:
@@ -433,7 +439,7 @@ func (g *Game) ProcessActionMessage(message messages.ActionMessage) messages.Mes
 
 		return messages.NewGameStateMessage(
 			"server",
-			g.state,
+			g.state.ObfuscateGameState(*p),
 		)
 
 	case models.ActionLegislate:
@@ -471,7 +477,7 @@ func (g *Game) ProcessActionMessage(message messages.ActionMessage) messages.Mes
 
 		return messages.NewGameStateMessage(
 			"server",
-			g.state,
+			g.state.ObfuscateGameState(*p),
 		)
 
 	case models.ActionProposeVeto:
@@ -493,7 +499,7 @@ func (g *Game) ProcessActionMessage(message messages.ActionMessage) messages.Mes
 
 		return messages.NewGameStateMessage(
 			"server",
-			g.state,
+			g.state.ObfuscateGameState(*p),
 		)
 	}
 

@@ -78,6 +78,15 @@ func (state *GameState) GetPlayer(index int) *Player {
 	return &state.Players[index]
 }
 
+// GetPlayerByID gets a player by their ID, returning nil if not found
+func (state *GameState) GetPlayerByID(id string) *Player {
+	index, exists := state.PlayerIndexMap[id]
+	if !exists {
+		return nil
+	}
+	return state.GetPlayer(index)
+}
+
 func (state *GameState) AddPlayer(id string, username string) (*Player, error) {
 	if _, exists := state.PlayerIndexMap[id]; exists {
 		return nil, repository.ErrPlayerAlreadyExists
@@ -161,7 +170,7 @@ func (state *GameState) StartGame() error {
 		return err
 	}
 	state.Board = board
-	state.Phase = Election
+	state.Phase = Nomination
 	state.PresidentIndex = rand.Intn(len(state.Players))
 	state.Discard = createDeck()
 	state.Deck = []Card{}
@@ -189,13 +198,15 @@ func (state *GameState) RevealPlayer(forPlayer Player, player Player) GameState 
 	obfuscatedState := *state
 
 	// Obfuscate deck
+	obfuscatedState.Deck = make([]Card, len(state.Deck))
 	for i := range obfuscatedState.Deck {
-		obfuscatedState.Deck[i] = CardHidden
+		obfuscatedState.Deck[i] = state.Deck[i]
 	}
 
 	// Obfuscate discard pile
+	obfuscatedState.Discard = make([]Card, len(state.Discard))
 	for i := range obfuscatedState.Discard {
-		obfuscatedState.Discard[i] = CardHidden
+		obfuscatedState.Discard[i] = state.Discard[i]
 	}
 
 	// Obfuscate hands
@@ -205,12 +216,17 @@ func (state *GameState) RevealPlayer(forPlayer Player, player Player) GameState 
 	}
 
 	// Obfuscate player information
-	for i, player := range obfuscatedState.Players {
-		if forPlayer.Role != RoleFascist && player.ID != forPlayer.ID {
-			obfuscatedState.Players[i].Role = RoleHidden
+	obfuscatedState.Players = make([]Player, len(state.Players))
+	for i := range obfuscatedState.Players {
+		p := state.Players[i]
+		if forPlayer.Role != RoleFascist && p.ID != forPlayer.ID && p.ID != player.ID {
+			p.Role = RoleHidden
 		}
 
-		player.ID = ""
+		if p.ID != forPlayer.ID {
+			player.ID = ""
+		}
+		obfuscatedState.Players[i] = p
 	}
 
 	return obfuscatedState
@@ -224,30 +240,35 @@ func (state *GameState) ObfuscateGameState(p Player) GameState {
 	}
 
 	// Obfuscate deck
+	obfuscatedState.Deck = make([]Card, len(state.Deck))
 	for i := range obfuscatedState.Deck {
-		obfuscatedState.Deck[i] = CardHidden
+		obfuscatedState.Deck[i] = state.Deck[i]
 	}
 
 	// Obfuscate discard pile
+	obfuscatedState.Discard = make([]Card, len(state.Discard))
 	for i := range obfuscatedState.Discard {
-		obfuscatedState.Discard[i] = CardHidden
+		obfuscatedState.Discard[i] = state.Discard[i]
 	}
 
 	// Obfuscate hands
 	peeker := obfuscatedState.GetPlayer(obfuscatedState.PeekerIndex)
-	if obfuscatedState.PeekerIndex != -1 && peeker != nil && p.ID != peeker.ID {
+	if obfuscatedState.PeekerIndex == -1 || peeker == nil || p.ID != peeker.ID {
 		obfuscatedState.PeekedCards = nil
 	}
 
 	// Obfuscate player information
-	for i, player := range obfuscatedState.Players {
-		if p.Role != RoleFascist && player.ID != p.ID {
-			obfuscatedState.Players[i].Role = RoleHidden
+	obfuscatedState.Players = make([]Player, len(state.Players))
+	for i := range obfuscatedState.Players {
+		player := state.Players[i]
+		if p.Role != RoleFascist && p.ID != player.ID {
+			player.Role = RoleHidden
 		}
 
-		if player.ID != p.ID {
+		if p.ID != player.ID {
 			player.ID = ""
 		}
+		obfuscatedState.Players[i] = player
 	}
 
 	return obfuscatedState
