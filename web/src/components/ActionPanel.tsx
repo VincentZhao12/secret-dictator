@@ -21,6 +21,9 @@ import {
   GameOver,
   Paused,
   MessageTypeAction,
+  VotePending,
+  VoteJa,
+  VoteNein,
 } from "../types";
 
 interface ActionPanelProps {
@@ -155,6 +158,34 @@ export function ActionPanel({
 
   const renderVotingInterface = () => {
     if (!canVote()) return null;
+
+    // Check if current player has already voted
+    const currentVote = gameState.votes && gameState.votes[currentPlayerIndex];
+    const hasVoted = currentVote !== undefined && currentVote !== VotePending;
+
+    if (hasVoted) {
+      return (
+        <div className="text-center mb-4">
+          <div className="bg-green-100 border-4 border-black rounded-lg px-6 py-4 shadow-[4px_4px_0px_black] inline-block">
+            <div className="flex items-center space-x-3">
+              {currentVote === VoteJa ? (
+                <FaThumbsUp className="text-green-600 text-xl" />
+              ) : currentVote === VoteNein ? (
+                <FaThumbsDown className="text-red-600 text-xl" />
+              ) : null}
+              <div className="text-left">
+                <p className="text-black font-propaganda text-sm font-bold">
+                  VOTE SUBMITTED
+                </p>
+                <p className="text-gray-700 font-propaganda text-xs">
+                  Waiting for other players...
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
 
     return (
       <div className="flex justify-center space-x-4 mb-4">

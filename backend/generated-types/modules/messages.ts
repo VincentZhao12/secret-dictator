@@ -17,7 +17,7 @@ export const InvalidTarget: ActionErrorReason = "Targeted player is cannot be ta
 export const InvalidAction: ActionErrorReason = "Invalid action";
 export const CouldNotStart: ActionErrorReason = "Could not start game";
 export interface ActionErrorMessage {
-  BaseMessage: BaseMessage;
+  base_message: BaseMessage;
   reason: ActionErrorReason;
 }
 

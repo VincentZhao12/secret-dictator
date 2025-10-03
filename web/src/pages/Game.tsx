@@ -4,9 +4,13 @@ import {
   type Player,
   type PlayerRole,
   type ActionMessage,
+  type VoteResult,
   Nomination,
   Executive,
   Setup,
+  VotePending,
+  VoteJa,
+  VoteNein,
 } from "@types";
 import { useMemo, useState } from "react";
 import {
@@ -32,6 +36,7 @@ interface PlayerCardProps {
   isChancellor: boolean;
   isNominee: boolean;
   isCurrentPlayer: boolean;
+  vote?: VoteResult;
   onClick: (playerId: string, playerIndex: number) => void;
 }
 
@@ -42,6 +47,7 @@ function PlayerCard({
   isChancellor,
   isNominee,
   isCurrentPlayer,
+  vote,
   onClick,
 }: PlayerCardProps) {
   const getRoleColor = (role: PlayerRole) => {
@@ -129,6 +135,21 @@ function PlayerCard({
           </div>
         )}
 
+        {/* Vote indicator */}
+        {vote !== undefined && vote !== VotePending && (
+          <div
+            className={`absolute top-1/2 -translate-y-1/2 -right-3 w-10 h-10 border-3 border-black rounded-full flex items-center justify-center shadow-[3px_3px_0px_black] font-bold text-lg ${
+              vote === VoteJa
+                ? "bg-green-500 text-white"
+                : vote === VoteNein
+                ? "bg-red-500 text-white"
+                : "bg-gray-500 text-white"
+            }`}
+          >
+            {vote === VoteJa ? "✓" : vote === VoteNein ? "✗" : "?"}
+          </div>
+        )}
+
         {/* Username */}
         <div className="pt-2 pb-1 text-center">
           <span
@@ -152,7 +173,16 @@ function PlayerCard({
         </div>
       </div>
     ),
-    [player, index, isPresident, isChancellor, isCurrentPlayer, onClick]
+    [
+      player,
+      index,
+      isPresident,
+      isChancellor,
+      isNominee,
+      isCurrentPlayer,
+      vote,
+      onClick,
+    ]
   );
 }
 
@@ -162,6 +192,7 @@ interface PlayerRowProps {
   chancellorIndex: number;
   nomineeIndex: number;
   currentPlayerId: string;
+  votes?: VoteResult[];
   onPlayerClick: (playerId: string, playerIndex: number) => void;
 }
 
@@ -171,11 +202,9 @@ function PlayerRow({
   chancellorIndex,
   nomineeIndex,
   currentPlayerId,
+  votes,
   onPlayerClick,
 }: PlayerRowProps) {
-  console.log(players);
-  // return useMemo(
-  //   () => (
   return (
     <div className="w-full overflow-x-auto mb-8 pt-4 pb-4">
       <div className="flex justify-start space-x-4 min-w-max px-4">
@@ -188,21 +217,13 @@ function PlayerRow({
             isChancellor={index === chancellorIndex}
             isNominee={index === nomineeIndex}
             isCurrentPlayer={player.id === currentPlayerId}
+            vote={votes && votes[index]}
             onClick={onPlayerClick}
           />
         ))}
       </div>
     </div>
   );
-  //   [
-  //     players,
-  //     presidentIndex,
-  //     chancellorIndex,
-  //     nomineeIndex,
-  //     currentPlayerId,
-  //     onPlayerClick,
-  //   ]
-  // );
 }
 
 export default function Game({
@@ -320,6 +341,7 @@ export default function Game({
             chancellorIndex={state.chancellor_index}
             nomineeIndex={state.nominee_index}
             currentPlayerId={currentPlayerId}
+            votes={state.votes}
             onPlayerClick={handlePlayerClick}
           />
 

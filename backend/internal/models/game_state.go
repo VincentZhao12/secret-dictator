@@ -10,6 +10,7 @@ type VoteResult int
 
 const (
 	VotePending VoteResult = iota
+	VoteHidden
 	VoteJa
 	VoteNein
 )
@@ -269,6 +270,17 @@ func (state *GameState) ObfuscateGameState(p Player) GameState {
 			player.ID = ""
 		}
 		obfuscatedState.Players[i] = player
+	}
+
+	if state.Votes != nil && state.Phase == Election {
+		obfuscatedState.Votes = make([]VoteResult, len(state.Votes))
+		for i := range obfuscatedState.Votes {
+			if state.Players[i].ID == p.ID {
+				obfuscatedState.Votes[i] = state.Votes[i]
+			} else {
+				obfuscatedState.Votes[i] = VoteHidden
+			}
+		}
 	}
 
 	return obfuscatedState

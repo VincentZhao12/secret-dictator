@@ -47,8 +47,9 @@ export const CardHidden: Card = "hidden";
 
 export type VoteResult = number /* int */;
 export const VotePending: VoteResult = 0;
-export const VoteJa: VoteResult = 1;
-export const VoteNein: VoteResult = 2;
+export const VoteHidden: VoteResult = 1;
+export const VoteJa: VoteResult = 2;
+export const VoteNein: VoteResult = 3;
 export interface GameState {
   players: Player[];
   deck: Card[];

@@ -33,7 +33,7 @@ export const InvalidTarget: ActionErrorReason = "Targeted player is cannot be ta
 export const InvalidAction: ActionErrorReason = "Invalid action";
 export const CouldNotStart: ActionErrorReason = "Could not start game";
 export interface ActionErrorMessage {
-  BaseMessage: BaseMessage;
+  base_message: BaseMessage;
   reason: ActionErrorReason;
 }
 
@@ -104,8 +104,9 @@ export const CardHidden: Card = "hidden";
 
 export type VoteResult = number /* int */;
 export const VotePending: VoteResult = 0;
-export const VoteJa: VoteResult = 1;
-export const VoteNein: VoteResult = 2;
+export const VoteHidden: VoteResult = 1;
+export const VoteJa: VoteResult = 2;
+export const VoteNein: VoteResult = 3;
 export interface GameState {
   players: Player[];
   deck: Card[];
