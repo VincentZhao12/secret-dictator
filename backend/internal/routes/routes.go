@@ -16,10 +16,11 @@ func SetupRouter(m *game.Manager) http.Handler {
 	r := chi.NewRouter()
 
 	r.Use(cors.Handler(cors.Options{
-		AllowedOrigins:   []string{"http://localhost:5173"}, // frontend URL
+		AllowedOrigins:   []string{"http://localhost:5173"},
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
-		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type"},
+		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "Upgrade", "Connection"},
 		AllowCredentials: true,
+		ExposedHeaders:   []string{"Upgrade", "Connection"},
 	}))
 
 	r.Use(middleware.RequestID)
@@ -31,7 +32,8 @@ func SetupRouter(m *game.Manager) http.Handler {
 	r.Route("/api/v1", func(api chi.Router) {
 		api.Post("/games/create", handlers.CreateGame(m))
 		api.Post("/games/join", handlers.JoinGame(m))
-		api.Connect("/play", handlers.Play(m))
+		api.Get("/play", handlers.Play(m))
+		// api.Connect("/play", handlers.Play(m))
 	})
 
 	return r

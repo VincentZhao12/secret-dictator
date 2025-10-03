@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 
 	"github.com/VincentZhao12/secret-hitler/backend/internal/game"
@@ -20,6 +21,7 @@ func Play(Manager *game.Manager) http.HandlerFunc {
 		conn, err := upgrader.Upgrade(w, r, nil)
 		if err != nil {
 			// TODO: Log failed connections
+			fmt.Println("failed to upgrade to web socket connection")
 			return
 		}
 		defer conn.Close()
@@ -27,20 +29,23 @@ func Play(Manager *game.Manager) http.HandlerFunc {
 		gameId := queryParams.Get("game")
 
 		if gameId == "" {
-			http.Error(w, "Invalid request payload", http.StatusBadRequest)
+			// http.Error(w, "Invalid request payload", http.StatusBadRequest)
+			fmt.Println("no game id")
 			return
 		}
 
 		game, exists := Manager.Games[gameId]
 		if !exists || game == nil {
-			http.Error(w, "Invalid request payload", http.StatusBadRequest)
+			// http.Error(w, "Invalid request payload", http.StatusBadRequest)
+			fmt.Println("no game found")
 			return
 		}
 
 		playerId := queryParams.Get("player")
 		err = game.AddConnection(playerId, conn)
 		if err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
+			fmt.Println("no player found")
+			// http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
 
@@ -54,17 +59,18 @@ func Play(Manager *game.Manager) http.HandlerFunc {
 		for {
 			_, messageBytes, err := conn.ReadMessage()
 			if err != nil {
+				fmt.Println("error reading message")
 				return
 			}
 
 			var message messages.Message
 			err = json.Unmarshal(messageBytes, &message)
 			if err != nil {
-				println("Malformed web socket message")
+				fmt.Println("Malformed web socket message")
 			}
 
 			switch message.GetType() {
-			case messages.MesasgeTypeAction:
+			case messages.MessageTypeAction:
 				message := message.(*messages.ActionMessage)
 				game.ActionChan <- *message
 			}

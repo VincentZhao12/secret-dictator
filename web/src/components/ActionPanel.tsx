@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { Button } from "./Button";
 import { PolicyCard } from "./PolicyCard";
 import { FaThumbsUp, FaThumbsDown } from "react-icons/fa";
-import type { GameState, Action } from "../types";
+import type { GameState, ActionMessage } from "../types";
 import {
   ActionVote,
   ActionLegislate,
@@ -19,22 +19,29 @@ import {
   Setup,
   GameOver,
   Paused,
+  MessageTypeAction,
 } from "../types";
 
 interface ActionPanelProps {
   gameState: GameState;
-  currentPlayerIndex: number;
-  onAction: (action: Action, data?: any) => void;
+  currentPlayerId: string;
+  onAction: (action: ActionMessage) => void;
 }
 
 export function ActionPanel({
   gameState,
-  currentPlayerIndex,
+  currentPlayerId,
   onAction,
 }: ActionPanelProps) {
   const [selectedCard, setSelectedCard] = useState<number>(-1);
 
-  const currentPlayer = gameState.players[currentPlayerIndex];
+  // Find current player index from ID
+  const currentPlayerIndex = gameState.players.findIndex(
+    (player) => player.id === currentPlayerId
+  );
+
+  const currentPlayer =
+    currentPlayerIndex >= 0 ? gameState.players[currentPlayerIndex] : null;
   const isCurrentPlayerDead = currentPlayer?.is_executed || false;
 
   const isCurrentPlayerTurn = (requiredIndex: number) => {
@@ -78,7 +85,14 @@ export function ActionPanel({
   };
 
   const handleVote = (vote: boolean) => {
-    onAction(ActionVote, { vote });
+    onAction({
+      action: ActionVote,
+      vote: vote,
+      base_message: {
+        sender_id: currentPlayerId,
+        type: MessageTypeAction,
+      },
+    });
   };
 
   const handleCardSelection = (cardIndex: number) => {
@@ -91,7 +105,14 @@ export function ActionPanel({
 
   const handleLegislate = () => {
     if (selectedCard !== -1) {
-      onAction(ActionLegislate, { selectedCard });
+      onAction({
+        action: ActionLegislate,
+        target_index: selectedCard,
+        base_message: {
+          sender_id: currentPlayerId,
+          type: MessageTypeAction,
+        },
+      });
       setSelectedCard(-1);
     }
   };
@@ -242,7 +263,18 @@ export function ActionPanel({
 
     return (
       <div className="flex justify-center">
-        <Button onClick={() => onAction(ActionEndTurn)} variant="secondary">
+        <Button
+          onClick={() =>
+            onAction({
+              action: ActionEndTurn,
+              base_message: {
+                sender_id: currentPlayerId,
+                type: MessageTypeAction,
+              },
+            })
+          }
+          variant="secondary"
+        >
           END TURN
         </Button>
       </div>
@@ -290,6 +322,6 @@ export function ActionPanel({
         )}
       </div>
     ),
-    [gameState, currentPlayerIndex, selectedCard, onAction, isCurrentPlayerDead]
+    [gameState, currentPlayerId, selectedCard, onAction, isCurrentPlayerDead]
   );
 }

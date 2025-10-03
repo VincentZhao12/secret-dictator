@@ -1,6 +1,7 @@
 package game
 
 import (
+	"fmt"
 	"math/rand"
 	"time"
 
@@ -33,9 +34,10 @@ func generateRandomID(length int) string {
 
 func NewGame(manager *Manager) *Game {
 	return &Game{
-		ID:      generateRandomID(8),
-		state:   models.NewGameState(),
-		manager: manager,
+		ID:          generateRandomID(8),
+		state:       models.NewGameState(),
+		manager:     manager,
+		Connections: make(map[string]*websocket.Conn),
 	}
 }
 
@@ -44,20 +46,30 @@ func (g *Game) SetHostID(id string) {
 }
 
 func (g *Game) AddConnection(id string, conn *websocket.Conn) error {
-	if _, exists := g.state.PlayerIndexMap[id]; exists {
+	playerIndex, exists := g.state.PlayerIndexMap[id]
+	if !exists {
+		fmt.Println("player doesnt exist")
 		return repository.ErrPlayerNotFound
 	}
 
 	if oldConn, exists := g.Connections[id]; exists && oldConn != nil {
-		return repository.ErrPlayerAlreadyExists
+		fmt.Println("player connection alr exist")
+		// return repository.ErrPlayerAlreadyExists
 	}
 
+	g.state.Players[playerIndex].IsConnected = true
 	g.Connections[id] = conn
 
 	if len(g.Connections) == len(g.state.Players) && g.state.Phase == models.Paused {
 		g.state.Phase = g.state.ResumePhase
 		g.state.ResumePhase = ""
 	}
+
+	conn.WriteJSON(messages.NewGameStateMessage(
+		"server",
+		g.state.ObfuscateGameState(g.state.Players[g.state.PlayerIndexMap[id]]),
+	))
+	g.broadcastGameState()
 
 	return nil
 }
@@ -67,15 +79,18 @@ func (g *Game) CanBeDeleted() bool {
 }
 
 func (g *Game) DropConnection(id string) error {
-	if _, exists := g.state.PlayerIndexMap[id]; exists {
+	playerIndex, exists := g.state.PlayerIndexMap[id]
+	if !exists {
 		return repository.ErrPlayerNotFound
 	}
 
+	g.state.Players[playerIndex].IsConnected = true
 	delete(g.Connections, id)
 	if g.state.Phase != models.GameOver {
 		g.state.ResumePhase = g.state.Phase
 		g.state.Phase = models.Paused
 	}
+	g.broadcastGameState()
 
 	return nil
 }
@@ -90,6 +105,8 @@ func (g *Game) NewPlayer(username string) (*models.Player, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	g.broadcastGameState()
 
 	return player, nil
 }

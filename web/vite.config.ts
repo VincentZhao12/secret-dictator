@@ -10,6 +10,17 @@ export default defineConfig({
       "@components": "/src/components",
       "@util": "/src/util",
       "@types": "/src/types",
+      "@hooks": "/src/hooks",
+      "@hooks/*": "/src/hooks/*",
+    },
+  },
+  server: {
+    proxy: {
+      "/api": {
+        target: "http://localhost:8080",
+        changeOrigin: true,
+        ws: true, // 🔑 allows WebSocket upgrade
+      },
     },
   },
 });

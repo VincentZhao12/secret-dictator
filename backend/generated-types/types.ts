@@ -19,10 +19,10 @@ export interface JoinGameResponse {
 //////////
 // source: action_message.go
 
-export const MesasgeTypeAction: MessageType = "action";
-export const MesasgeTypeActionError: MessageType = "action_error";
+export const MessageTypeAction: MessageType = "action";
+export const MessageTypeActionError: MessageType = "action_error";
 export interface ActionMessage {
-  BaseMessage: BaseMessage;
+  base_message: BaseMessage;
   action: Action;
   target_index?: number /* int */;
   vote?: boolean;
@@ -34,7 +34,7 @@ export const InvalidAction: ActionErrorReason = "Invalid action";
 export const CouldNotStart: ActionErrorReason = "Could not start game";
 export interface ActionErrorMessage {
   BaseMessage: BaseMessage;
-  target_index: ActionErrorReason;
+  reason: ActionErrorReason;
 }
 
 //////////
@@ -42,7 +42,7 @@ export interface ActionErrorMessage {
 
 export const MessageTypeGameState: MessageType = "game_state";
 export interface GameStateMessage {
-  BaseMessage: BaseMessage;
+  base_message: BaseMessage;
   game_state: GameState;
 }
 
@@ -153,6 +153,7 @@ export interface Player {
   username: string;
   role: PlayerRole;
   is_executed: boolean;
+  is_connected: boolean;
 }
 
 //////////

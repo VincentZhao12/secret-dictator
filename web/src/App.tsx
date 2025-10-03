@@ -4,6 +4,7 @@ import Home from "./pages/Home";
 import JoinGame from "./pages/JoinGame";
 import Game from "./pages/Game";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import Play from "./pages/Play";
 
 const queryClient = new QueryClient();
 
@@ -14,6 +15,7 @@ function App() {
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/join" element={<JoinGame />} />
+          <Route path="/play" element={<Play />} />
           <Route
             path="/game"
             element={
@@ -103,6 +105,8 @@ function App() {
                   resume_order_index: -1,
                   winner: "unassigned",
                 }}
+                onAction={(actionMessage) => console.log(actionMessage)}
+                currentPlayerId="1"
               />
             }
           />

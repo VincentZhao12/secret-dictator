@@ -96,6 +96,7 @@ export interface Player {
   username: string;
   role: PlayerRole;
   is_executed: boolean;
+  is_connected: boolean;
 }
 
 //////////

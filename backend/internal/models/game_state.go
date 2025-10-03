@@ -219,7 +219,7 @@ func (state *GameState) ObfuscateGameState(p Player) GameState {
 	}
 
 	// Obfuscate hands
-	if p.ID != obfuscatedState.Players[obfuscatedState.PeekerIndex].ID {
+	if obfuscatedState.PeekerIndex != -1 && p.ID != obfuscatedState.Players[obfuscatedState.PeekerIndex].ID {
 		obfuscatedState.PeekedCards = nil
 	}
 

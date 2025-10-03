@@ -11,10 +11,11 @@ const (
 )
 
 type Player struct {
-	ID         string     `json:"id"`
-	Username   string     `json:"username"`
-	Role       PlayerRole `json:"role"`
-	IsExecuted bool       `json:"is_executed"`
+	ID          string     `json:"id"`
+	Username    string     `json:"username"`
+	Role        PlayerRole `json:"role"`
+	IsExecuted  bool       `json:"is_executed"`
+	IsConnected bool       `json:"is_connected"`
 }
 
 func NewPlayer(id string, username string) Player {

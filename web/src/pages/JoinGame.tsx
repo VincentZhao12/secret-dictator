@@ -38,8 +38,8 @@ function JoinGame() {
     },
     onSuccess: (resp) => {
       // TODO: Implement transition to play after play exists
-      // localStorage.setItem(`player_id_for_${resp.game_id}`, resp.player_id);
-      // navigate(`/play?game=${resp.game_id}`);
+      localStorage.setItem(`player_id_for_${resp.game_id}`, resp.player_id);
+      navigate(`/play?game=${resp.game_id}&player=${resp.player_id}`);
       console.log(`joined game ${resp.player_id}`);
     },
   });

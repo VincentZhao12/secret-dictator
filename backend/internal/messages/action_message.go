@@ -3,12 +3,12 @@ package messages
 import "github.com/VincentZhao12/secret-hitler/backend/internal/models"
 
 const (
-	MesasgeTypeAction      MessageType = "action"
-	MesasgeTypeActionError MessageType = "action_error"
+	MessageTypeAction      MessageType = "action"
+	MessageTypeActionError MessageType = "action_error"
 )
 
 type ActionMessage struct {
-	BaseMessage
+	BaseMessage `json:"base_message" tstype:"BaseMessage"`
 	Action      models.Action `json:"action" tstype:"Action"`
 	TargetIndex int           `json:"target_index,omitempty"`
 	Vote        *bool         `json:"vote,omitempty"`
@@ -17,7 +17,7 @@ type ActionMessage struct {
 func NewActionMessage(senderID string, action models.Action, targetIndex int, vote bool) *ActionMessage {
 	return &ActionMessage{
 		BaseMessage: BaseMessage{
-			Type:     MesasgeTypeAction,
+			Type:     MessageTypeAction,
 			SenderID: senderID,
 		},
 		Action:      action,
@@ -37,13 +37,13 @@ const (
 
 type ActionErrorMessage struct {
 	BaseMessage
-	Reason ActionErrorReason `json:"target_index"`
+	Reason ActionErrorReason `json:"reason"`
 }
 
 func NewActionErrorMessage(senderID string, reason ActionErrorReason) *ActionErrorMessage {
 	return &ActionErrorMessage{
 		BaseMessage: BaseMessage{
-			Type:     MesasgeTypeActionError,
+			Type:     MessageTypeActionError,
 			SenderID: senderID,
 		},
 		Reason: reason,

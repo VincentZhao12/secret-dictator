@@ -7,7 +7,9 @@
       "@util": ["src/util"],
       "@util/*": ["src/util/*"],
       "@components": ["src/components"],
-      "@components/*": ["src/components/*"]
+      "@components/*": ["src/components/*"],
+      "@hooks": ["src/hooks"],
+      "@hooks/*": ["src/hooks/*"]
     }
   },
   "references": [

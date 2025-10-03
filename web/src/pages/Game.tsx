@@ -1,10 +1,20 @@
-import { Board, Container, ActionPanel } from "../components";
-import type { GameState, Player, PlayerRole, Action } from "../types";
+import { Board, Container, ActionPanel } from "@components";
+import {
+  type GameState,
+  type Player,
+  type PlayerRole,
+  type ActionMessage,
+  Election,
+  Nomination,
+  Executive,
+} from "@types";
 import { useMemo } from "react";
-import { FaCrown, FaGavel, FaSkull } from "react-icons/fa";
+import { FaCrown, FaGavel, FaSkull, FaWifi } from "react-icons/fa";
 
 interface GameProps {
   state: GameState;
+  currentPlayerId: string;
+  onAction: (msg: ActionMessage) => void;
 }
 
 interface PlayerCardProps {
@@ -54,12 +64,22 @@ function PlayerCard({
     () => (
       <div
         onClick={() => !player.is_executed && onClick(player.id, index)}
-        className={`relative border-4 border-black rounded-xl p-3 shadow-[4px_4px_0px_black] transition-transform duration-200 min-w-[120px] ${
+        className={`relative border-4 rounded-xl p-3 shadow-[4px_4px_0px_black] transition-transform duration-200 min-w-[120px] ${
           player.is_executed
-            ? "bg-gray-400/60 cursor-default opacity-75"
-            : "bg-orange-200/90 cursor-pointer hover:scale-105"
+            ? "bg-gray-400/60 cursor-default opacity-75 border-black"
+            : player.is_connected
+            ? "bg-orange-200/90 cursor-pointer hover:scale-105 border-black"
+            : "bg-orange-200/60 cursor-pointer hover:scale-105 border-red-500"
         }`}
       >
+        {/* Disconnected indicator */}
+        {!player.is_connected && !player.is_executed && (
+          <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-red-500 text-white px-2 py-0.5 rounded-full border-2 border-black shadow-[2px_2px_0px_black] flex items-center space-x-1">
+            <FaWifi className="text-xs rotate-45" />
+            <span className="text-xs font-propaganda font-bold">OFFLINE</span>
+          </div>
+        )}
+
         {/* Dead player overlay */}
         {player.is_executed && (
           <div className="absolute inset-0 bg-black/20 rounded-lg flex items-center justify-center">
@@ -94,7 +114,11 @@ function PlayerCard({
         <div className="pt-2 pb-1 text-center">
           <span
             className={`font-propaganda text-sm tracking-wider ${
-              player.is_executed ? "text-gray-600 line-through" : "text-black"
+              player.is_executed
+                ? "text-gray-600 line-through"
+                : !player.is_connected
+                ? "text-gray-500"
+                : "text-black"
             }`}
           >
             {player.username.toUpperCase()}
@@ -140,23 +164,46 @@ function PlayerRow({
   );
 }
 
-export default function Game({ state }: GameProps) {
-  // In a real app, this would come from authentication/game context
-  const currentPlayerIndex = 0; // For demo purposes
+export default function Game({ state, currentPlayerId, onAction }: GameProps) {
+  // Find current player index from ID
+  const currentPlayerIndex = state.players.findIndex(
+    (player) => player.id === currentPlayerId
+  );
 
-  const currentPlayer = state.players[currentPlayerIndex];
+  const currentPlayer =
+    currentPlayerIndex >= 0 ? state.players[currentPlayerIndex] : null;
   const isCurrentPlayerDead = currentPlayer?.is_executed || false;
 
   const handlePlayerClick = (playerId: string, playerIndex: number) => {
     console.log(`Clicked player: ${playerId} at index ${playerIndex}`);
-    // TODO: Handle player interactions based on game phase
-    // This could trigger investigation, execution, special election, etc.
+
+    switch (state.phase) {
+      case Nomination:
+        onAction({
+          action: "nominate",
+          target_index: playerIndex,
+          base_message: {
+            type: "action",
+            sender_id: currentPlayerId,
+          },
+        });
+        break;
+      case Executive:
+        onAction({
+          action: "execute",
+          target_index: playerIndex,
+          base_message: {
+            type: "action",
+            sender_id: currentPlayerId,
+          },
+        });
+        break;
+    }
   };
 
-  const handleAction = (action: Action, data?: any) => {
-    console.log(`Action: ${action}`, data);
-    // TODO: Send action to game server
-    // This would handle all game actions like voting, legislation, veto, etc.
+  const handleAction = (actionMessage: ActionMessage) => {
+    console.log(`Action: ${actionMessage}`);
+    onAction(actionMessage);
   };
 
   return (
@@ -204,7 +251,7 @@ export default function Game({ state }: GameProps) {
             <div className="w-full lg:w-96 flex-shrink-0">
               <ActionPanel
                 gameState={state}
-                currentPlayerIndex={currentPlayerIndex}
+                currentPlayerId={currentPlayerId}
                 onAction={handleAction}
               />
             </div>
