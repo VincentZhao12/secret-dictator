@@ -29,6 +29,7 @@ export function useWebSocket(url: string, options: Options = {}) {
   const onCloseRef = useRef<typeof onClose>(onClose);
   const onErrorRef = useRef<typeof onError>(onError);
   const onMessageRef = useRef<typeof onMessage>(onMessage);
+  const shouldConnect = useRef<boolean>(true);
 
   useEffect(() => {
     onOpenRef.current = onOpen;
@@ -49,18 +50,18 @@ export function useWebSocket(url: string, options: Options = {}) {
   const [isConnected, setIsConnected] = useState(false);
 
   const connect = useCallback(() => {
+    if (!shouldConnect.current) {
+      return;
+    }
     console.log(`attempting to connect to ${url}`);
     ws.current = new WebSocket(url);
-    console.log("web socket created", ws.current);
 
     ws.current.onopen = (event) => {
-      console.log("open", event);
       setIsConnected(true);
       onOpenRef.current?.(event);
     };
 
     ws.current.onclose = (event) => {
-      console.log(event);
       setIsConnected(false);
       onCloseRef.current?.(event);
       if (reconnect) {
@@ -69,7 +70,6 @@ export function useWebSocket(url: string, options: Options = {}) {
     };
 
     ws.current.onerror = (event) => {
-      console.log(event);
       onErrorRef.current?.(event);
     };
 
@@ -83,6 +83,8 @@ export function useWebSocket(url: string, options: Options = {}) {
     return () => {
       ws.current?.close();
       if (reconnectTimeout.current) {
+        shouldConnect.current = false;
+        console.log("clearing timeout");
         clearTimeout(reconnectTimeout.current);
         reconnectTimeout.current = null;
       }

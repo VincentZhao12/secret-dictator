@@ -43,6 +43,7 @@ func NewGame(manager *Manager) *Game {
 
 func (g *Game) SetHostID(id string) {
 	g.HostID = id
+	g.state.HostID = id
 }
 
 func (g *Game) AddConnection(id string, conn *websocket.Conn) error {
@@ -57,7 +58,10 @@ func (g *Game) AddConnection(id string, conn *websocket.Conn) error {
 		// return repository.ErrPlayerAlreadyExists
 	}
 
-	g.state.Players[playerIndex].IsConnected = true
+	player := g.state.GetPlayer(playerIndex)
+	if player != nil {
+		player.IsConnected = true
+	}
 	g.Connections[id] = conn
 
 	if len(g.Connections) == len(g.state.Players) && g.state.Phase == models.Paused {
@@ -65,17 +69,20 @@ func (g *Game) AddConnection(id string, conn *websocket.Conn) error {
 		g.state.ResumePhase = ""
 	}
 
-	conn.WriteJSON(messages.NewGameStateMessage(
-		"server",
-		g.state.ObfuscateGameState(g.state.Players[g.state.PlayerIndexMap[id]]),
-	))
+	playerForState := g.state.GetPlayer(g.state.PlayerIndexMap[id])
+	if playerForState != nil {
+		conn.WriteJSON(messages.NewGameStateMessage(
+			"server",
+			g.state.ObfuscateGameState(*playerForState),
+		))
+	}
 	g.broadcastGameState()
 
 	return nil
 }
 
 func (g *Game) CanBeDeleted() bool {
-	return len(g.Connections) == 0 && g.state.Phase == models.GameOver
+	return len(g.Connections) == 0 && (g.state.Phase == models.GameOver || g.state.Phase == models.Setup)
 }
 
 func (g *Game) DropConnection(id string) error {
@@ -84,11 +91,28 @@ func (g *Game) DropConnection(id string) error {
 		return repository.ErrPlayerNotFound
 	}
 
-	g.state.Players[playerIndex].IsConnected = false
+	player := g.state.GetPlayer(playerIndex)
+	if player != nil {
+		player.IsConnected = false
+	}
 	delete(g.Connections, id)
-	if g.state.Phase != models.GameOver {
+	if g.state.Phase != models.GameOver && g.state.Phase != models.Setup {
 		g.state.ResumePhase = g.state.Phase
 		g.state.Phase = models.Paused
+	}
+
+	if g.state.Phase == models.Setup {
+		err := g.state.RemovePlayer(player.ID)
+		if err != nil {
+			return err
+		}
+		if len(g.state.Players) == 0 {
+			return nil
+		}
+		fmt.Println(g.HostID, id)
+		if g.HostID == id {
+			g.SetHostID(g.state.Players[0].ID)
+		}
 	}
 	g.broadcastGameState()
 
@@ -101,9 +125,15 @@ func (g *Game) EndGame(winner models.Team) {
 }
 
 func (g *Game) NewPlayer(username string) (*models.Player, error) {
-	player, err := g.state.AddPlayer(generateRandomID(16), username)
+	playerID := generateRandomID(16)
+	player, err := g.state.AddPlayer(playerID, username)
 	if err != nil {
 		return nil, err
+	}
+
+	// Set host to first player if not already set
+	if g.HostID == "" {
+		g.SetHostID(playerID)
 	}
 
 	g.broadcastGameState()
@@ -114,18 +144,22 @@ func (g *Game) NewPlayer(username string) (*models.Player, error) {
 func (g *Game) broadcastGameState() {
 	for id, conn := range g.Connections {
 		if conn != nil {
-			if err := conn.WriteJSON(messages.NewGameStateMessage(
-				"server",
-				g.state.ObfuscateGameState(g.state.Players[g.state.PlayerIndexMap[id]]),
-			)); err != nil {
-				println("error sending message")
+			player := g.state.GetPlayer(g.state.PlayerIndexMap[id])
+			if player != nil {
+				if err := conn.WriteJSON(messages.NewGameStateMessage(
+					"server",
+					g.state.ObfuscateGameState(*player),
+				)); err != nil {
+					println("error sending message")
+				}
 			}
 		}
 	}
 }
 
 func (g *Game) validateActionMessage(message messages.ActionMessage, requiresPresident bool, requiresTarget bool) *messages.ActionErrorMessage {
-	if requiresPresident && g.state.Players[g.state.PresidentIndex].ID != message.SenderID {
+	president := g.state.GetPlayer(g.state.PresidentIndex)
+	if requiresPresident && (president == nil || president.ID != message.SenderID) {
 		return messages.NewActionErrorMessage(message.SenderID, messages.NotAllowed)
 	}
 
@@ -133,11 +167,13 @@ func (g *Game) validateActionMessage(message messages.ActionMessage, requiresPre
 		return messages.NewActionErrorMessage(message.SenderID, messages.InvalidTarget)
 	}
 
-	if requiresTarget && g.state.Players[message.TargetIndex].IsExecuted {
+	targetPlayer := g.state.GetPlayer(message.TargetIndex)
+	if requiresTarget && (targetPlayer == nil || targetPlayer.IsExecuted) {
 		return messages.NewActionErrorMessage(message.SenderID, messages.InvalidTarget)
 	}
 
-	if g.state.Players[g.state.PlayerIndexMap[message.SenderID]].IsExecuted {
+	sender := g.state.GetPlayer(g.state.PlayerIndexMap[message.SenderID])
+	if sender != nil && sender.IsExecuted {
 		return messages.NewActionErrorMessage(message.SenderID, messages.NotAllowed)
 	}
 
@@ -176,10 +212,17 @@ func (g *Game) Run() {
 func (g *Game) ProcessActionMessage(message messages.ActionMessage) messages.Message {
 	switch message.Action {
 	case models.ActionStartGame:
+		// Only host can start the game
+		if message.SenderID != g.HostID {
+			return messages.NewActionErrorMessage(message.SenderID, messages.NotAllowed)
+		}
+
 		err := g.state.StartGame()
 		if err != nil {
 			return messages.NewActionErrorMessage(message.SenderID, messages.CouldNotStart)
 		}
+
+		g.broadcastGameState()
 
 		return messages.NewGameStateMessage(
 			"server",
@@ -195,12 +238,16 @@ func (g *Game) ProcessActionMessage(message messages.ActionMessage) messages.Mes
 			return messages.NewActionErrorMessage(message.SenderID, messages.NotAllowed)
 		}
 
-		forPlayer := g.state.Players[g.state.PresidentIndex]
-		player := g.state.Players[message.TargetIndex]
+		forPlayer := g.state.GetPlayer(g.state.PresidentIndex)
+		player := g.state.GetPlayer(message.TargetIndex)
+
+		if forPlayer == nil || player == nil {
+			return messages.NewActionErrorMessage(message.SenderID, messages.InvalidAction)
+		}
 
 		return messages.NewGameStateMessage(
 			"server",
-			g.state.RevealPlayer(forPlayer, player),
+			g.state.RevealPlayer(*forPlayer, *player),
 		)
 
 	case models.ActionSpecialElection:
@@ -255,7 +302,10 @@ func (g *Game) ProcessActionMessage(message messages.ActionMessage) messages.Mes
 			return messages.NewActionErrorMessage(message.SenderID, messages.NotAllowed)
 		}
 
-		g.state.Players[message.TargetIndex].IsExecuted = true
+		targetPlayer := g.state.GetPlayer(message.TargetIndex)
+		if targetPlayer != nil {
+			targetPlayer.IsExecuted = true
+		}
 
 		if g.state.EndGameIfNecessary() {
 			g.broadcastGameState()
@@ -367,7 +417,8 @@ func (g *Game) ProcessActionMessage(message messages.ActionMessage) messages.Mes
 			return errorMessage
 		}
 
-		if message.SenderID != g.state.Players[g.state.PeekerIndex].ID {
+		peeker := g.state.GetPlayer(g.state.PeekerIndex)
+		if peeker == nil || message.SenderID != peeker.ID {
 			return messages.NewActionErrorMessage(message.SenderID, messages.NotAllowed)
 		}
 

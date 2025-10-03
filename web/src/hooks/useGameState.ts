@@ -23,10 +23,7 @@ export function useGameState(
 
   const { sendMessage: sendMessageRaw, isConnected } = useWebSocket(url, {
     onMessage: (messageEvent) => {
-      console.log(messageEvent.data);
       const data: Message = JSON.parse(messageEvent.data);
-
-      console.log(data);
 
       if (!data || !data.base_message.type) {
         // TODO: log malformed messages

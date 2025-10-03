@@ -67,6 +67,7 @@ export interface GameState {
   resume_order_index?: number /* int */; // Post special election
   resume_phase?: GamePhase;
   winner?: Team;
+  host_id: string;
 }
 
 //////////

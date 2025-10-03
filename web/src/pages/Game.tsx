@@ -22,6 +22,7 @@ interface PlayerCardProps {
   index: number;
   isPresident: boolean;
   isChancellor: boolean;
+  isCurrentPlayer: boolean;
   onClick: (playerId: string, playerIndex: number) => void;
 }
 
@@ -30,6 +31,7 @@ function PlayerCard({
   index,
   isPresident,
   isChancellor,
+  isCurrentPlayer,
   onClick,
 }: PlayerCardProps) {
   const getRoleColor = (role: PlayerRole) => {
@@ -123,10 +125,17 @@ function PlayerCard({
           >
             {player.username.toUpperCase()}
           </span>
+          {isCurrentPlayer && (
+            <div className="mt-1">
+              <span className="inline-block bg-green-500 text-white px-2 py-0.5 rounded-full text-xs font-propaganda font-bold border-2 border-black shadow-[2px_2px_0px_black]">
+                YOU
+              </span>
+            </div>
+          )}
         </div>
       </div>
     ),
-    [player, index, isPresident, isChancellor, onClick]
+    [player, index, isPresident, isChancellor, isCurrentPlayer, onClick]
   );
 }
 
@@ -134,6 +143,7 @@ interface PlayerRowProps {
   players: Player[];
   presidentIndex: number;
   chancellorIndex: number;
+  currentPlayerId: string;
   onPlayerClick: (playerId: string, playerIndex: number) => void;
 }
 
@@ -141,6 +151,7 @@ function PlayerRow({
   players,
   presidentIndex,
   chancellorIndex,
+  currentPlayerId,
   onPlayerClick,
 }: PlayerRowProps) {
   return useMemo(
@@ -154,13 +165,14 @@ function PlayerRow({
               index={index}
               isPresident={index === presidentIndex}
               isChancellor={index === chancellorIndex}
+              isCurrentPlayer={player.id === currentPlayerId}
               onClick={onPlayerClick}
             />
           ))}
         </div>
       </div>
     ),
-    [players, presidentIndex, chancellorIndex, onPlayerClick]
+    [players, presidentIndex, chancellorIndex, currentPlayerId, onPlayerClick]
   );
 }
 
@@ -237,6 +249,7 @@ export default function Game({ state, currentPlayerId, onAction }: GameProps) {
             players={state.players}
             presidentIndex={state.president_index}
             chancellorIndex={state.chancellor_index}
+            currentPlayerId={currentPlayerId}
             onPlayerClick={handlePlayerClick}
           />
 

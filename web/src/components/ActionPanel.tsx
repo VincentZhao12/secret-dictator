@@ -1,12 +1,13 @@
 import { useMemo, useState } from "react";
 import { Button } from "./Button";
 import { PolicyCard } from "./PolicyCard";
-import { FaThumbsUp, FaThumbsDown } from "react-icons/fa";
+import { FaThumbsUp, FaThumbsDown, FaPlay } from "react-icons/fa";
 import type { GameState, ActionMessage } from "../types";
 import {
   ActionVote,
   ActionLegislate,
   ActionEndTurn,
+  ActionStartGame,
   Election,
   Legislation1,
   Legislation2,
@@ -140,6 +141,16 @@ export function ActionPanel({
       default:
         return "";
     }
+  };
+
+  const handleStartGame = () => {
+    onAction({
+      action: ActionStartGame,
+      base_message: {
+        sender_id: currentPlayerId,
+        type: MessageTypeAction,
+      },
+    });
   };
 
   const renderVotingInterface = () => {
@@ -281,6 +292,32 @@ export function ActionPanel({
     );
   };
 
+  const renderStartGameButton = () => {
+    const isHost = currentPlayerId === gameState.host_id;
+    const isSetupPhase = gameState.phase === Setup;
+    const hasEnoughPlayers = gameState.players.length >= 5;
+
+    if (!isHost || !isSetupPhase) return null;
+
+    return (
+      <div className="flex justify-center">
+        <Button
+          onClick={handleStartGame}
+          disabled={!hasEnoughPlayers}
+          className="bg-green-600 hover:bg-green-700 text-white font-propaganda text-lg px-8 py-4 flex items-center space-x-3 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          <FaPlay />
+          <span>START GAME</span>
+        </Button>
+        {!hasEnoughPlayers && (
+          <p className="text-red-600 font-propaganda text-sm mt-2">
+            Need at least 5 players to start
+          </p>
+        )}
+      </div>
+    );
+  };
+
   return useMemo(
     () => (
       <div
@@ -307,6 +344,9 @@ export function ActionPanel({
         {/* Only show interactive content if player is alive */}
         {!isCurrentPlayerDead && (
           <>
+            {/* Start Game Button (Setup Phase) */}
+            {renderStartGameButton()}
+
             {/* Voting Interface */}
             {renderVotingInterface()}
 

@@ -33,6 +33,7 @@ type GameState struct {
 	ResumeOrderIndex    int            `json:"resume_order_index,omitempty"` // Post special election
 	ResumePhase         GamePhase      `json:"resume_phase,omitempty"`
 	Winner              Team           `json:"winner,omitempty"`
+	HostID              string         `json:"host_id"`
 }
 
 func createDeck() []Card {
@@ -65,7 +66,16 @@ func NewGameState() GameState {
 		PeekerIndex:         -1,
 		ResumeOrderIndex:    -1,
 		Winner:              TeamUnassigned,
+		HostID:              "",
 	}
+}
+
+// GetPlayer safely gets a player at the given index, returning nil if index is out of bounds
+func (state *GameState) GetPlayer(index int) *Player {
+	if index < 0 || index >= len(state.Players) {
+		return nil
+	}
+	return &state.Players[index]
 }
 
 func (state *GameState) AddPlayer(id string, username string) (*Player, error) {
@@ -189,7 +199,8 @@ func (state *GameState) RevealPlayer(forPlayer Player, player Player) GameState 
 	}
 
 	// Obfuscate hands
-	if forPlayer.ID != obfuscatedState.Players[obfuscatedState.PeekerIndex].ID {
+	peeker := obfuscatedState.GetPlayer(obfuscatedState.PeekerIndex)
+	if peeker != nil && forPlayer.ID != peeker.ID {
 		obfuscatedState.PeekedCards = nil
 	}
 
@@ -208,6 +219,10 @@ func (state *GameState) RevealPlayer(forPlayer Player, player Player) GameState 
 func (state *GameState) ObfuscateGameState(p Player) GameState {
 	obfuscatedState := *state
 
+	if p.ID != state.HostID {
+		obfuscatedState.HostID = ""
+	}
+
 	// Obfuscate deck
 	for i := range obfuscatedState.Deck {
 		obfuscatedState.Deck[i] = CardHidden
@@ -219,7 +234,8 @@ func (state *GameState) ObfuscateGameState(p Player) GameState {
 	}
 
 	// Obfuscate hands
-	if obfuscatedState.PeekerIndex != -1 && p.ID != obfuscatedState.Players[obfuscatedState.PeekerIndex].ID {
+	peeker := obfuscatedState.GetPlayer(obfuscatedState.PeekerIndex)
+	if obfuscatedState.PeekerIndex != -1 && peeker != nil && p.ID != peeker.ID {
 		obfuscatedState.PeekedCards = nil
 	}
 
@@ -273,8 +289,10 @@ func (state *GameState) NewTurn() {
 		state.ResumeOrderIndex = -1
 	} else {
 		nextPresidentIndex := (state.PresidentIndex + 1) % len(state.Players)
-		for state.Players[nextPresidentIndex].IsExecuted {
+		nextPlayer := state.GetPlayer(nextPresidentIndex)
+		for nextPlayer != nil && nextPlayer.IsExecuted {
 			nextPresidentIndex = (nextPresidentIndex + 1) % len(state.Players)
+			nextPlayer = state.GetPlayer(nextPresidentIndex)
 		}
 		state.PresidentIndex = nextPresidentIndex
 	}
