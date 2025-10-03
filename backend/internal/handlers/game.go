@@ -50,6 +50,7 @@ func JoinGame(Manager *game.Manager) http.HandlerFunc {
 		game, exists := Manager.GetGame(req.GameID)
 		if game == nil || !exists {
 			http.Error(w, "Invalid game id", http.StatusBadRequest)
+			return
 		}
 
 		player, err := game.NewPlayer(req.Username)

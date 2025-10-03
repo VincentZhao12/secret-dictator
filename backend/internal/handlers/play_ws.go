@@ -34,7 +34,7 @@ func Play(Manager *game.Manager) http.HandlerFunc {
 			return
 		}
 
-		game, exists := Manager.Games[gameId]
+		game, exists := Manager.GetGame(gameId)
 		if !exists || game == nil {
 			// http.Error(w, "Invalid request payload", http.StatusBadRequest)
 			fmt.Println("no game found")
@@ -63,16 +63,24 @@ func Play(Manager *game.Manager) http.HandlerFunc {
 				return
 			}
 
-			var message messages.Message
-			err = json.Unmarshal(messageBytes, &message)
-			if err != nil {
-				fmt.Println("Malformed web socket message")
+			var envelope struct {
+				Base messages.BaseMessage `json:"base_message"`
+			}
+			if err := json.Unmarshal(messageBytes, &envelope); err != nil {
+				fmt.Println("Malformed web socket message: could not parse envelope")
+				continue
 			}
 
-			switch message.GetType() {
+			switch envelope.Base.GetType() {
 			case messages.MessageTypeAction:
-				message := message.(*messages.ActionMessage)
-				game.ActionChan <- *message
+				var action messages.ActionMessage
+				if err := json.Unmarshal(messageBytes, &action); err != nil {
+					fmt.Println("Malformed action message")
+					continue
+				}
+				game.ActionChan <- action
+			default:
+				fmt.Println("Unexpected message type")
 			}
 		}
 	}

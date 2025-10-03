@@ -3,6 +3,7 @@ package game
 import (
 	"fmt"
 	"math/rand"
+	"sync"
 	"time"
 
 	"github.com/VincentZhao12/secret-hitler/backend/internal/messages"
@@ -18,6 +19,7 @@ type Game struct {
 	ActionChan  chan (messages.ActionMessage)
 	Connections map[string]*websocket.Conn
 	manager     *Manager
+	connMu      sync.RWMutex
 }
 
 const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
@@ -33,12 +35,15 @@ func generateRandomID(length int) string {
 }
 
 func NewGame(manager *Manager) *Game {
-	return &Game{
-		ID:          generateRandomID(8),
-		state:       models.NewGameState(),
-		manager:     manager,
-		Connections: make(map[string]*websocket.Conn),
-	}
+    g := &Game{
+        ID:          generateRandomID(8),
+        state:       models.NewGameState(),
+        manager:     manager,
+        Connections: make(map[string]*websocket.Conn),
+        ActionChan:  make(chan messages.ActionMessage),
+    }
+    go g.Run()
+    return g
 }
 
 func (g *Game) SetHostID(id string) {
@@ -47,10 +52,12 @@ func (g *Game) SetHostID(id string) {
 }
 
 func (g *Game) AddConnection(id string, conn *websocket.Conn) error {
+    g.connMu.Lock()
 	playerIndex, exists := g.state.PlayerIndexMap[id]
 	if !exists {
 		fmt.Println("player doesnt exist")
-		return repository.ErrPlayerNotFound
+        g.connMu.Unlock()
+        return repository.ErrPlayerNotFound
 	}
 
 	if oldConn, exists := g.Connections[id]; exists && oldConn != nil {
@@ -68,15 +75,16 @@ func (g *Game) AddConnection(id string, conn *websocket.Conn) error {
 		g.state.Phase = g.state.ResumePhase
 		g.state.ResumePhase = ""
 	}
+    playerForState := g.state.GetPlayer(g.state.PlayerIndexMap[id])
+    g.connMu.Unlock()
 
-	playerForState := g.state.GetPlayer(g.state.PlayerIndexMap[id])
-	if playerForState != nil {
-		conn.WriteJSON(messages.NewGameStateMessage(
-			"server",
-			g.state.ObfuscateGameState(*playerForState),
-		))
-	}
-	g.broadcastGameState()
+    if playerForState != nil {
+        conn.WriteJSON(messages.NewGameStateMessage(
+            "server",
+            g.state.ObfuscateGameState(*playerForState),
+        ))
+    }
+    g.broadcastGameState()
 
 	return nil
 }
@@ -86,15 +94,18 @@ func (g *Game) CanBeDeleted() bool {
 }
 
 func (g *Game) DropConnection(id string) error {
+    g.connMu.Lock()
 	playerIndex, exists := g.state.PlayerIndexMap[id]
 	if !exists {
-		return repository.ErrPlayerNotFound
+        g.connMu.Unlock()
+        return repository.ErrPlayerNotFound
 	}
 
 	player := g.state.GetPlayer(playerIndex)
 	if player != nil {
 		player.IsConnected = false
 	}
+
 	delete(g.Connections, id)
 	if g.state.Phase != models.GameOver && g.state.Phase != models.Setup {
 		g.state.ResumePhase = g.state.Phase
@@ -104,19 +115,22 @@ func (g *Game) DropConnection(id string) error {
 	if g.state.Phase == models.Setup {
 		err := g.state.RemovePlayer(player.ID)
 		if err != nil {
-			return err
+            g.connMu.Unlock()
+            return err
 		}
 		if len(g.state.Players) == 0 {
-			return nil
+            g.connMu.Unlock()
+            return nil
 		}
 		fmt.Println(g.HostID, id)
 		if g.HostID == id {
 			g.SetHostID(g.state.Players[0].ID)
 		}
 	}
-	g.broadcastGameState()
+    g.connMu.Unlock()
+    g.broadcastGameState()
 
-	return nil
+    return nil
 }
 
 func (g *Game) EndGame(winner models.Team) {
@@ -142,19 +156,26 @@ func (g *Game) NewPlayer(username string) (*models.Player, error) {
 }
 
 func (g *Game) broadcastGameState() {
-	for id, conn := range g.Connections {
-		if conn != nil {
-			player := g.state.GetPlayer(g.state.PlayerIndexMap[id])
-			if player != nil {
-				if err := conn.WriteJSON(messages.NewGameStateMessage(
-					"server",
-					g.state.ObfuscateGameState(*player),
-				)); err != nil {
-					println("error sending message")
-				}
-			}
-		}
-	}
+    g.connMu.RLock()
+    snapshot := make(map[string]*websocket.Conn, len(g.Connections))
+    for id, conn := range g.Connections {
+        snapshot[id] = conn
+    }
+    g.connMu.RUnlock()
+
+    for id, conn := range snapshot {
+        if conn != nil {
+            player := g.state.GetPlayer(g.state.PlayerIndexMap[id])
+            if player != nil {
+                if err := conn.WriteJSON(messages.NewGameStateMessage(
+                    "server",
+                    g.state.ObfuscateGameState(*player),
+                )); err != nil {
+                    println("error sending message")
+                }
+            }
+        }
+    }
 }
 
 func (g *Game) validateActionMessage(message messages.ActionMessage, requiresPresident bool, requiresTarget bool) *messages.ActionErrorMessage {
@@ -196,7 +217,10 @@ func (g *Game) Run() {
 			return
 		}
 		response := g.ProcessActionMessage(message)
+		g.connMu.RLock()
 		conn, exists := g.Connections[message.SenderID]
+		g.connMu.RUnlock()
+		
 		if !exists || conn == nil {
 			continue
 		}
