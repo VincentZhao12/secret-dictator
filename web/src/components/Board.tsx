@@ -60,18 +60,24 @@ interface PolicySlotProps {
   isActive: boolean;
   type: Card;
   executiveAction?: Action;
+  isDangerZone?: boolean;
 }
 
-function PolicySlot({ isActive, type, executiveAction }: PolicySlotProps) {
+function PolicySlot({
+  isDangerZone,
+  isActive,
+  type,
+  executiveAction,
+}: PolicySlotProps) {
   const baseClasses =
-    "relative w-16 h-20 border-4 border-black rounded-lg flex items-center justify-center";
+    "relative w-16 h-20 border-4 border-black rounded-lg flex items-center justify-center transition-all duration-300";
 
   const typeClasses = {
-    [CardLiberal]: isActive
-      ? "bg-blue-500 shadow-[3px_3px_0px_black]"
+    [CardLiberal]: isDangerZone
+      ? "bg-gradient-to-br from-blue-400 to-blue-600 shadow-[4px_4px_0px_black] ring-2 ring-blue-300"
       : "bg-blue-200/50 shadow-[2px_2px_0px_black]",
-    [CardFascist]: isActive
-      ? "bg-orange-600 shadow-[3px_3px_0px_black]"
+    [CardFascist]: isDangerZone
+      ? "bg-gradient-to-br from-red-500 to-red-700 shadow-[4px_4px_0px_black] ring-2 ring-red-300"
       : "bg-red-200/50 shadow-[2px_2px_0px_black]",
   };
 
@@ -82,6 +88,15 @@ function PolicySlot({ isActive, type, executiveAction }: PolicySlotProps) {
       ) : (
         <div className={`${baseClasses} ${typeClasses[type]}`}>
           {isActive && <PolicyCard type={type} />}
+
+          {/* Danger Zone Indicator */}
+          {isDangerZone && !isActive && (
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="absolute inset-0 bg-gradient-to-br from-yellow-400/20 to-red-500/20 rounded-lg"></div>
+              <FaExclamationTriangle className="text-black text-lg drop-shadow-[1px_1px_0px_white]" />
+            </div>
+          )}
+
           {/* Executive action icon */}
           {executiveAction && !isActive && type === CardFascist && (
             <div className="absolute -top-2 -right-2">
@@ -90,7 +105,7 @@ function PolicySlot({ isActive, type, executiveAction }: PolicySlotProps) {
           )}
         </div>
       ),
-    [isActive, type, executiveAction]
+    [isActive, type, executiveAction, isDangerZone]
   );
 }
 
@@ -145,14 +160,19 @@ const Track = function ({
   return useMemo(
     () => (
       <div className="flex justify-center space-x-3 mb-4">
-        {Array.from({ length: slots }, (_, i) => (
-          <PolicySlot
-            key={i}
-            isActive={i < policies}
-            type={type}
-            executiveAction={executiveActions[i + 1]}
-          />
-        ))}
+        {Array.from({ length: slots }, (_, i) => {
+          const isDangerSlot = type === CardFascist && i >= 3;
+          return (
+            <div key={i} className="relative">
+              <PolicySlot
+                isActive={i < policies}
+                isDangerZone={isDangerSlot}
+                type={type}
+                executiveAction={executiveActions[i + 1]}
+              />
+            </div>
+          );
+        })}
       </div>
     ),
     [type, slots, policies, executiveActions]
@@ -223,10 +243,10 @@ export function Board({
 
       {/* Fascist Track */}
       <div
-        className={`bg-gradient-to-r from-orange-500 to-orange-600 rounded-xl p-6 shadow-[6px_6px_0px_black] ${
+        className={`rounded-xl p-6 shadow-[6px_6px_0px_black] ${
           isDangerZone
-            ? "border-4 border-red-600 ring-4 ring-red-400 animate-pulse"
-            : "border-4 border-black"
+            ? "bg-gradient-to-r from-orange-800 to-red-800 border-4 border-red-600 ring-4 ring-red-400 animate-pulse"
+            : "bg-gradient-to-r from-orange-500 to-orange-600 border-4 border-black"
         }`}
       >
         <div className="text-center mb-6">
