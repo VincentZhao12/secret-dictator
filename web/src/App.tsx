@@ -6,6 +6,7 @@ import Game from "./pages/Game";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import Play from "./pages/Play";
 import { ToastProvider } from "./contexts/ToastContext";
+import { ActionExecution } from "@types";
 
 const queryClient = new QueryClient();
 
@@ -102,7 +103,9 @@ function App() {
                       fascist_policies: 1,
                       liberal_slots: 5,
                       fascist_slots: 6,
-                      executive_actions: {},
+                      executive_actions: {
+                        2: ActionExecution,
+                      },
                       election_tracker: {
                         failed_elections: 1,
                         max_failures: 3,

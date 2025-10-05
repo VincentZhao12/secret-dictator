@@ -30,7 +30,6 @@ export interface ActionMessage {
 export type ActionErrorReason = string;
 export const NotAllowed: ActionErrorReason = "Action not allowed";
 export const InvalidTarget: ActionErrorReason = "Targeted player is cannot be targeted for this action";
-export const InvalidAction: ActionErrorReason = "Invalid action";
 export const CouldNotStart: ActionErrorReason = "Could not start game";
 export interface ActionErrorMessage {
   base_message: BaseMessage;
@@ -89,6 +88,7 @@ export interface Board {
   liberal_slots: number /* int */;
   executive_actions: { [key: number /* int */]: Action};
   election_tracker: ElectionTracker;
+  danger_zone_start: number /* int */;
 }
 
 //////////
