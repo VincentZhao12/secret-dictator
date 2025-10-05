@@ -48,6 +48,8 @@ export function useWebSocket(url: string, options: Options = {}) {
   }, [onMessage]);
 
   const [isConnected, setIsConnected] = useState(false);
+  const [isConnecting, setIsConnecting] = useState(true);
+  const [lastError, setLastError] = useState<Event | null>(null);
 
   const connect = useCallback(() => {
     if (!shouldConnect.current) {
@@ -56,13 +58,18 @@ export function useWebSocket(url: string, options: Options = {}) {
     console.log(`attempting to connect to ${url}`);
     ws.current = new WebSocket(url);
 
+    setIsConnecting(true);
+
     ws.current.onopen = (event) => {
       setIsConnected(true);
+      setIsConnecting(false);
+      setLastError(null);
       onOpenRef.current?.(event);
     };
 
     ws.current.onclose = (event) => {
       setIsConnected(false);
+      setIsConnecting(false);
       onCloseRef.current?.(event);
       if (reconnect) {
         reconnectTimeout.current = setTimeout(connect, reconnectInterval);
@@ -70,6 +77,8 @@ export function useWebSocket(url: string, options: Options = {}) {
     };
 
     ws.current.onerror = (event) => {
+      setLastError(event);
+      setIsConnecting(false);
       onErrorRef.current?.(event);
     };
 
@@ -99,5 +108,5 @@ export function useWebSocket(url: string, options: Options = {}) {
     }
   }, []);
 
-  return { sendMessage, isConnected };
+  return { sendMessage, isConnected, isConnecting, lastError };
 }

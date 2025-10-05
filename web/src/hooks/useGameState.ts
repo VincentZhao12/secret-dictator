@@ -1,8 +1,10 @@
 import {
   MessageTypeActionError,
+  MessageTypeConnectionError,
   MessageTypeGameState,
   type ActionErrorMessage,
   type ActionMessage,
+  type ConnectionErrorMessage,
   type GameState,
   type GameStateMessage,
   type Message,
@@ -19,9 +21,20 @@ export function useGameState(
   const url = `${
     import.meta.env.VITE_BASE_URL_WS
   }/api/v1/play?game=${gameId}&player=${playerId}`;
-  const [gameState, setGameState] = useState<GameState | null>(null);
 
-  const { sendMessage: sendMessageRaw, isConnected } = useWebSocket(url, {
+  const [shouldReonnect, setShouldReconnect] = useState<boolean>(true);
+  const [gameState, setGameState] = useState<GameState | null>(null);
+  const [connectionError, setConnectionError] = useState<string | null>(null);
+  const [connectionErrorType, setConnectionErrorType] = useState<number | null>(
+    null
+  );
+
+  const {
+    sendMessage: sendMessageRaw,
+    isConnected,
+    isConnecting,
+    lastError,
+  } = useWebSocket(url, {
     onMessage: (messageEvent) => {
       const data: Message = JSON.parse(messageEvent.data);
 
@@ -40,12 +53,21 @@ export function useGameState(
         case MessageTypeGameState:
           const gameStateMessage: GameStateMessage = data;
           setGameState(gameStateMessage.game_state);
+          setConnectionError(null);
+          setConnectionErrorType(null);
+          break;
+        case MessageTypeConnectionError:
+          const connErrMessage: ConnectionErrorMessage = data;
+          setShouldReconnect(false);
+          setConnectionError(connErrMessage.reason);
+          setConnectionErrorType(connErrMessage.error_type);
           break;
         default:
           onError(new Error("Unexpected message type"));
           break;
       }
     },
+    reconnect: shouldReonnect,
     // onError: onError,
     deps: [gameId, playerId],
   });
@@ -54,5 +76,13 @@ export function useGameState(
     sendMessageRaw(JSON.stringify(message));
   }
 
-  return { gameState, sendMessage, isConnected };
+  return {
+    gameState,
+    sendMessage,
+    isConnected,
+    isConnecting,
+    connectionError,
+    connectionErrorType,
+    lastError,
+  };
 }

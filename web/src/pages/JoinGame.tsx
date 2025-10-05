@@ -39,6 +39,7 @@ function JoinGame() {
     onSuccess: (resp) => {
       // TODO: Implement transition to play after play exists
       localStorage.setItem(`player_id_for_${resp.game_id}`, resp.player_id);
+      localStorage.setItem("last_username", username);
       navigate(`/play?game=${resp.game_id}&player=${resp.player_id}`);
       console.log(`joined game ${resp.player_id}`);
     },
@@ -51,6 +52,12 @@ function JoinGame() {
     const gameParam = urlParams.get("game");
     if (gameParam) {
       setGameId(gameParam);
+    }
+
+    // Load last username from localStorage
+    const lastUsername = localStorage.getItem("last_username");
+    if (lastUsername) {
+      setUsername(lastUsername);
     }
   }, []);
 
