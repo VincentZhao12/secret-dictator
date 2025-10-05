@@ -16,7 +16,7 @@ import {
   TeamFascist,
   ActionNominate,
 } from "@types";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   FaCrown,
@@ -44,7 +44,7 @@ interface PlayerCardProps {
   isNominee: boolean;
   isCurrentPlayer: boolean;
   vote?: VoteResult;
-  onClick: (playerId: string, playerIndex: number) => void;
+  onClick: (playerIndex: number) => void;
 }
 
 function PlayerCard({
@@ -87,7 +87,7 @@ function PlayerCard({
 
   return (
     <div
-      onClick={() => !player.is_executed && onClick(player.id, index)}
+      onClick={() => !player.is_executed && onClick(index)}
       className={`relative border-4 rounded-xl p-3 shadow-[4px_4px_0px_black] transition-transform duration-200 min-w-[120px] ${
         player.is_executed
           ? "bg-gray-400/60 cursor-default opacity-75 border-black"
@@ -188,7 +188,7 @@ interface PlayerRowProps {
   nomineeIndex: number;
   currentPlayerId: string;
   votes?: VoteResult[];
-  onPlayerClick: (playerId: string, playerIndex: number) => void;
+  onPlayerClick: (playerIndex: number) => void;
 }
 
 function PlayerRow({
@@ -255,7 +255,7 @@ export default function Game({
     }
   };
 
-  const handlePlayerClick = (playerId: string, playerIndex: number) => {
+  const handlePlayerClick = (playerIndex: number) => {
     switch (state.phase) {
       case Nomination:
         onAction({
