@@ -195,38 +195,38 @@ func (state *GameState) ShuffleDeck() {
 	state.Discard = []Card{}
 }
 
-func (state *GameState) RevealPlayer(forPlayer Player, player Player) GameState {
+func (state *GameState) RevealPlayer(viewer Player, revealed Player) GameState {
 	obfuscatedState := *state
 
-	// Obfuscate deck
-	obfuscatedState.Deck = make([]Card, len(state.Deck))
-	for i := range obfuscatedState.Deck {
-		obfuscatedState.Deck[i] = state.Deck[i]
-	}
+	// Deep copy deck
+	obfuscatedState.Deck = append([]Card(nil), state.Deck...)
 
-	// Obfuscate discard pile
-	obfuscatedState.Discard = make([]Card, len(state.Discard))
-	for i := range obfuscatedState.Discard {
-		obfuscatedState.Discard[i] = state.Discard[i]
-	}
+	// Deep copy discard
+	obfuscatedState.Discard = append([]Card(nil), state.Discard...)
 
-	// Obfuscate hands
+	// Hide peeked cards unless viewer is the peeker
 	peeker := obfuscatedState.GetPlayer(obfuscatedState.PeekerIndex)
-	if peeker != nil && forPlayer.ID != peeker.ID {
+	if peeker != nil && viewer.ID != peeker.ID {
 		obfuscatedState.PeekedCards = nil
 	}
 
-	// Obfuscate player information
+	// Obfuscate players
 	obfuscatedState.Players = make([]Player, len(state.Players))
 	for i := range obfuscatedState.Players {
 		p := state.Players[i]
-		if forPlayer.Role != RoleFascist && p.ID != forPlayer.ID && p.ID != player.ID {
+
+		// Hide roles based on viewer/revealed relationship
+		if viewer.Role == RoleLiberal && p.ID != viewer.ID && p.ID != revealed.ID {
+			p.Role = RoleHidden
+		} else if viewer.Role == RoleFascist && p.Role == RoleLiberal && p.ID != viewer.ID && p.ID != revealed.ID {
 			p.Role = RoleHidden
 		}
 
-		if p.ID != forPlayer.ID {
-			player.ID = ""
+		// Hide IDs of other players (optional)
+		if p.ID != viewer.ID {
+			p.ID = ""
 		}
+
 		obfuscatedState.Players[i] = p
 	}
 
@@ -346,10 +346,17 @@ func (state *GameState) PlaceCard(card Card) bool {
 		state.Board.LiberalPolicies++
 	}
 
-	if state.Board.ExecutiveActions[state.Board.FascistPolicies] != ActionNone {
+	if action, exists := state.Board.ExecutiveActions[state.Board.FascistPolicies]; exists && action != ActionNone {
 		state.Phase = Executive
 		action := state.Board.ExecutiveActions[state.Board.FascistPolicies]
 		state.PendingAction = &action
+
+		if action == ActionPolicyPeek {
+			state.PeekedCards = []Card{state.Deck[0]}
+			state.PeekerIndex = state.PresidentIndex
+		}
+	} else {
+		state.NewTurn()
 	}
 
 	return state.EndGameIfNecessary()

@@ -167,9 +167,13 @@ func (g *Game) broadcastGameState() {
 		if conn != nil {
 			player := g.state.GetPlayerByID(id)
 			if player != nil {
+				gameState := g.state
+				if gameState.Phase != models.GameOver {
+					gameState = gameState.ObfuscateGameState(*player)
+				}
 				if err := conn.WriteJSON(messages.NewGameStateMessage(
 					"server",
-					g.state.ObfuscateGameState(*player),
+					gameState,
 				)); err != nil {
 					println("error sending message")
 				}
@@ -270,7 +274,7 @@ func (g *Game) ProcessActionMessage(message messages.ActionMessage) messages.Mes
 		player := g.state.GetPlayer(message.TargetIndex)
 
 		if forPlayer == nil || player == nil {
-			return messages.NewActionErrorMessage(message.SenderID, messages.InvalidAction)
+			return messages.NewActionErrorMessage(message.SenderID, messages.InvalidAction(message.Action))
 		}
 
 		return messages.NewGameStateMessage(
@@ -314,7 +318,8 @@ func (g *Game) ProcessActionMessage(message messages.ActionMessage) messages.Mes
 		if g.state.Phase != models.Executive {
 			return messages.NewActionErrorMessage(message.SenderID, messages.NotAllowed)
 		}
-		g.state.PeekedCards = g.state.Deck[:3]
+		g.state.PeekedCards = []models.Card{g.state.Deck[0]}
+		g.state.PeekerIndex = g.state.PresidentIndex
 
 		return messages.NewGameStateMessage(
 			"server",
@@ -356,7 +361,7 @@ func (g *Game) ProcessActionMessage(message messages.ActionMessage) messages.Mes
 		}
 
 		if message.Vote == nil {
-			return messages.NewActionErrorMessage(message.SenderID, messages.InvalidAction)
+			return messages.NewActionErrorMessage(message.SenderID, messages.InvalidAction(message.Action))
 		}
 
 		if *message.Vote {
@@ -382,14 +387,20 @@ func (g *Game) ProcessActionMessage(message messages.ActionMessage) messages.Mes
 				g.state.Phase = models.Legislation1
 				g.state.PeekerIndex = g.state.PresidentIndex
 
-				fmt.Println(g.state.Deck)
-
 				// Draw 3 cards
 				if len(g.state.Deck) < 3 {
 					g.state.ShuffleDeck()
 				}
 				g.state.PeekedCards = g.state.Deck[:3]
 				g.state.Deck = g.state.Deck[3:]
+				if g.state.Players[g.state.ChancellorIndex].Role == models.RoleHitler && g.state.Board.FascistPolicies >= g.state.Board.DangerZoneStart {
+					g.state.EndGame(models.TeamFascist)
+					g.broadcastGameState()
+					return messages.NewGameStateMessage(
+						"server",
+						g.state,
+					)
+				}
 			} else {
 				g.state.Board.ElectionTracker.FailedElections++
 
@@ -453,7 +464,7 @@ func (g *Game) ProcessActionMessage(message messages.ActionMessage) messages.Mes
 		}
 
 		if message.TargetIndex < 0 || message.TargetIndex > len(g.state.PeekedCards) {
-			return messages.NewActionErrorMessage(message.SenderID, messages.InvalidAction)
+			return messages.NewActionErrorMessage(message.SenderID, messages.InvalidAction(message.Action))
 		}
 
 		switch g.state.Phase {
@@ -464,13 +475,12 @@ func (g *Game) ProcessActionMessage(message messages.ActionMessage) messages.Mes
 			g.state.PeekerIndex = g.state.ChancellorIndex
 		case models.Legislation2:
 			removedCard := g.state.PeekedCards[message.TargetIndex]
-			g.state.Discard = append(g.state.Discard, g.state.PeekedCards[message.TargetIndex])
+			remainingCard := g.state.PeekedCards[(message.TargetIndex+1)%2]
+			g.state.Discard = append(g.state.Discard, removedCard)
 			g.state.PeekedCards = nil
 			g.state.PeekerIndex = -1
 
-			if !g.PlaceCard(removedCard) {
-				g.NewTurn()
-			}
+			g.PlaceCard(remainingCard)
 		}
 
 		g.broadcastGameState()
@@ -503,5 +513,5 @@ func (g *Game) ProcessActionMessage(message messages.ActionMessage) messages.Mes
 		)
 	}
 
-	return messages.NewActionErrorMessage(message.SenderID, messages.InvalidAction)
+	return messages.NewActionErrorMessage(message.SenderID, messages.InvalidAction(message.Action))
 }

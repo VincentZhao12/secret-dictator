@@ -31,13 +31,16 @@ type ActionErrorReason string
 const (
 	NotAllowed    ActionErrorReason = "Action not allowed"
 	InvalidTarget ActionErrorReason = "Targeted player is cannot be targeted for this action"
-	InvalidAction ActionErrorReason = "Invalid action"
 	CouldNotStart ActionErrorReason = "Could not start game"
 )
 
+func InvalidAction(action models.Action) ActionErrorReason {
+	return ActionErrorReason("Invalid action: " + action)
+}
+
 type ActionErrorMessage struct {
 	BaseMessage `json:"base_message" tstype:"BaseMessage"`
-	Reason ActionErrorReason `json:"reason"`
+	Reason      ActionErrorReason `json:"reason"`
 }
 
 func NewActionErrorMessage(senderID string, reason ActionErrorReason) *ActionErrorMessage {

@@ -32,6 +32,7 @@ export interface Board {
   liberal_slots: number /* int */;
   executive_actions: { [key: number /* int */]: Action};
   election_tracker: ElectionTracker;
+  danger_zone_start: number /* int */;
 }
 
 //////////
