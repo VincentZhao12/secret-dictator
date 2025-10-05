@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/VincentZhao12/secret-hitler/backend/internal/game"
 	"github.com/VincentZhao12/secret-hitler/backend/internal/messages"
@@ -16,12 +17,22 @@ var upgrader = websocket.Upgrader{
 	CheckOrigin:     func(r *http.Request) bool { return true }, // In production, verify origin
 }
 
+func scheduleDeleteGame(m *game.Manager, game *game.Game) {
+	go func() {
+		time.Sleep(10 * time.Minute)
+		if g, exists := m.GetGame(game.ID); exists && g.CanBeDeleted() {
+			m.RemoveGame(game.ID)
+			fmt.Println("Deleted game", game.ID, "due to inactivity")
+		}
+	}()
+}
+
 func Play(Manager *game.Manager) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		conn, err := upgrader.Upgrade(w, r, nil)
 		if err != nil {
 			// TODO: Log failed connections
-			fmt.Println("failed to upgrade to web socket connection")
+			conn.WriteJSON(messages.NewConnectionErrorMessage("server", "Failed to upgrade to WebSocket: "+err.Error(), messages.ConnectionErrorTypeGameInvalid))
 			return
 		}
 		defer conn.Close()
@@ -29,14 +40,14 @@ func Play(Manager *game.Manager) http.HandlerFunc {
 		gameId := queryParams.Get("game")
 
 		if gameId == "" {
-			// http.Error(w, "Invalid request payload", http.StatusBadRequest)
+			conn.WriteJSON(messages.NewConnectionErrorMessage("server", "Missing game ID in query parameters", messages.ConnectionErrorTypeGameInvalid))
 			fmt.Println("no game id")
 			return
 		}
 
 		game, exists := Manager.GetGame(gameId)
 		if !exists || game == nil {
-			// http.Error(w, "Invalid request payload", http.StatusBadRequest)
+			conn.WriteJSON(messages.NewConnectionErrorMessage("server", "Game not found", messages.ConnectionErrorTypeGameInvalid))
 			fmt.Println("no game found")
 			return
 		}
@@ -44,16 +55,14 @@ func Play(Manager *game.Manager) http.HandlerFunc {
 		playerId := queryParams.Get("player")
 		err = game.AddConnection(playerId, conn)
 		if err != nil {
+			conn.WriteJSON(messages.NewConnectionErrorMessage("server", "Failed to add connection: "+err.Error(), messages.ConnectionErrorTypePlayerInvalid))
 			fmt.Println("no player found")
-			// http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
 
 		defer func() {
 			game.DropConnection(playerId)
-			if game.CanBeDeleted() {
-				Manager.RemoveGame(gameId)
-			}
+			scheduleDeleteGame(Manager, game)
 		}()
 
 		for {

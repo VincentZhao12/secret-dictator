@@ -93,6 +93,9 @@ func (g *Game) CanBeDeleted() bool {
 	return len(g.Connections) == 0 && (g.state.Phase == models.GameOver || g.state.Phase == models.Setup)
 }
 
+func (g *Game) scheduleRemovePlayer(id string) {
+}
+
 func (g *Game) DropConnection(id string) error {
 	g.connMu.Lock()
 	playerIndex, exists := g.state.PlayerIndexMap[id]

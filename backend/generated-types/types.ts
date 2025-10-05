@@ -37,6 +37,21 @@ export interface ActionErrorMessage {
 }
 
 //////////
+// source: connection_error_message.go
+
+export const MessageTypeConnectionError: MessageType = "connection_error";
+export type ConnectionErrorType = number /* int */;
+export const ConnectionErrorTypeFatal: ConnectionErrorType = 0;
+export const ConnectionErrorTypeGameInvalid: ConnectionErrorType = 1;
+export const ConnectionErrorTypePlayerInvalid: ConnectionErrorType = 2;
+export const ConnectionErrorTypeServerError: ConnectionErrorType = 3;
+export interface ConnectionErrorMessage {
+  base_message: BaseMessage;
+  reason: string;
+  error_type: ConnectionErrorType;
+}
+
+//////////
 // source: game_state_message.go
 
 export const MessageTypeGameState: MessageType = "game_state";
