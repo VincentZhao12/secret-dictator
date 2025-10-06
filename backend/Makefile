@@ -1,9 +1,23 @@
-build: 
+build-web:
+	cd ../web && npm run build
+	mkdir -p static
+	cd ../backend && cp -r ../web/dist/* ./static
+	
+	
+build: build-web
 	go build -o bin main.go
+
 run: build
-	./bin/main
+	export ENV="development" && ./bin/main
+
+dev: build-web
+	export ENV="development" && go run main.go
+
 clean:
 	rm -rf bin
+	rm -rf ../web/dist
+	rm -rf static
+
 types:
 	rm -rf generated-types/modules/*
 	tygo generate

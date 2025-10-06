@@ -23,4 +23,9 @@ export default defineConfig({
       },
     },
   },
+  define: {
+    // Set default values for production builds
+    "import.meta.env.VITE_BASE_URL": JSON.stringify(""),
+    "import.meta.env.VITE_BASE_URL_WS": JSON.stringify("ws://localhost:8080"),
+  },
 });
