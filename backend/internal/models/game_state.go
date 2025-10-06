@@ -346,7 +346,7 @@ func (state *GameState) PlaceCard(card Card) bool {
 		state.Board.LiberalPolicies++
 	}
 
-	if action, exists := state.Board.ExecutiveActions[state.Board.FascistPolicies]; exists && action != ActionNone {
+	if action, exists := state.Board.ExecutiveActions[state.Board.FascistPolicies]; card == CardFascist && exists && action != ActionNone {
 		state.Phase = Executive
 		action := state.Board.ExecutiveActions[state.Board.FascistPolicies]
 		state.PendingAction = &action

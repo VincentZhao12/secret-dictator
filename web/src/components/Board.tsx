@@ -225,7 +225,7 @@ export function Board({
 
       {/* Danger Zone Warning */}
       {isDangerZone && (
-        <div className="bg-red-600 border-4 border-black rounded-xl p-4 shadow-[6px_6px_0px_black] animate-pulse">
+        <div className="bg-red-600 border-4 border-black rounded-xl p-4 shadow-[6px_6px_0px_black]">
           <div className="flex items-center justify-center space-x-3">
             <FaExclamationTriangle className="text-yellow-300 text-2xl" />
             <div className="text-center">
@@ -245,7 +245,7 @@ export function Board({
       <div
         className={`rounded-xl p-6 shadow-[6px_6px_0px_black] ${
           isDangerZone
-            ? "bg-gradient-to-r from-orange-800 to-red-800 border-4 border-red-600 ring-4 ring-red-400 animate-pulse"
+            ? "bg-gradient-to-r from-orange-800 to-red-800 border-4 border-red-600 ring-4 ring-red-400"
             : "bg-gradient-to-r from-orange-500 to-orange-600 border-4 border-black"
         }`}
       >

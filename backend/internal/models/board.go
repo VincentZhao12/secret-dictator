@@ -35,7 +35,6 @@ func NewBoard(players int) (Board, error) {
 		b.FascistSlots = 6
 		// From the board: the fascist track with 6 slots has powers at slot 3 (peek) and slot 4 (execution) etc.
 		b.ExecutiveActions = map[int]Action{
-			1: ActionSpecialElection,
 			3: ActionPolicyPeek,
 			4: ActionExecution,
 			5: ActionExecution,
