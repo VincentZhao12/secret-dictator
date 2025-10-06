@@ -18,9 +18,15 @@ export function useGameState(
   playerId: string,
   onError: (error: Error) => void
 ) {
-  const url = `${
-    import.meta.env.VITE_BASE_URL_WS
-  }/api/v1/play?game=${gameId}&player=${playerId}`;
+  const wsBaseUrl =
+    (import.meta.env.VITE_BASE_URL_WS as string | undefined) ||
+    (typeof window !== "undefined"
+      ? `${window.location.protocol === "https:" ? "wss" : "ws"}://${
+          window.location.host
+        }`
+      : "");
+
+  const url = `${wsBaseUrl}/api/v1/play?game=${gameId}&player=${playerId}`;
 
   const [shouldReonnect, setShouldReconnect] = useState<boolean>(true);
   const [gameState, setGameState] = useState<GameState | null>(null);

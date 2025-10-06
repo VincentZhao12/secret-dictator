@@ -13,7 +13,7 @@ COPY web/ .
 
 # Provide prod defaults for API and WS base URLs if not supplied at build
 ARG VITE_BASE_URL=""
-ARG VITE_BASE_URL_WS="ws://localhost:8080"
+ARG VITE_BASE_URL_WS=""
 ENV VITE_BASE_URL=$VITE_BASE_URL \
     VITE_BASE_URL_WS=$VITE_BASE_URL_WS
 

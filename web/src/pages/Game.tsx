@@ -381,6 +381,17 @@ export default function Game({
         </div>
       )}
 
+      {/* Back to Home Button - Bottom Left */}
+      <div className="fixed bottom-6 left-6 z-40">
+        <button
+          onClick={handleBackToHome}
+          className="bg-gray-800 hover:bg-gray-900 text-white px-4 py-3 rounded-lg border-4 border-black shadow-[4px_4px_0px_black] font-propaganda font-bold tracking-wider uppercase transition-all duration-200 hover:scale-105 flex items-center space-x-2"
+        >
+          <FaHome className="text-sm" />
+          <span>HOME</span>
+        </button>
+      </div>
+
       {/* Invite Link Button - Top Right */}
       {state.phase === Setup && (
         <div className="fixed top-6 right-6 z-40">
