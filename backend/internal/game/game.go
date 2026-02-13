@@ -355,7 +355,7 @@ func (g *Game) ProcessActionMessage(message messages.ActionMessage) messages.Mes
 		)
 
 	case models.ActionVote:
-		if errorMessage := g.validateActionMessage(message, false, true); errorMessage != nil {
+		if errorMessage := g.validateActionMessage(message, false, false); errorMessage != nil {
 			return errorMessage
 		}
 
@@ -373,9 +373,14 @@ func (g *Game) ProcessActionMessage(message messages.ActionMessage) messages.Mes
 			g.state.Votes[g.state.PlayerIndexMap[message.SenderID]] = models.VoteNein
 		}
 
+		eligibleVoters := 0
 		votes := 0
 		yesVotes := 0
-		for _, vote := range g.state.Votes {
+		for i, vote := range g.state.Votes {
+			if g.state.Players[i].IsExecuted {
+				continue
+			}
+			eligibleVoters++
 			if vote != models.VotePending {
 				votes++
 			}
@@ -384,8 +389,9 @@ func (g *Game) ProcessActionMessage(message messages.ActionMessage) messages.Mes
 			}
 		}
 
-		if votes == len(g.state.Players) {
-			if yesVotes > len(g.state.Players)/2 {
+		if votes == eligibleVoters {
+			if yesVotes > eligibleVoters/2 {
+				g.state.Board.ElectionTracker.FailedElections = 0
 				g.state.ChancellorIndex = g.state.NomineeIndex
 				g.state.Phase = models.Legislation1
 				g.state.PeekerIndex = g.state.PresidentIndex
@@ -401,7 +407,7 @@ func (g *Game) ProcessActionMessage(message messages.ActionMessage) messages.Mes
 					g.broadcastGameState()
 					return messages.NewGameStateMessage(
 						"server",
-						g.state,
+						g.state.ObfuscateGameState(*p),
 					)
 				}
 			} else {
@@ -416,9 +422,16 @@ func (g *Game) ProcessActionMessage(message messages.ActionMessage) messages.Mes
 					topCard := g.state.Deck[0]
 					g.state.Deck = g.state.Deck[1:]
 
-					g.PlaceCard(topCard)
+					if g.PlaceCard(topCard) {
+						g.broadcastGameState()
+						return messages.NewGameStateMessage(
+							"server",
+							g.state.ObfuscateGameState(*p),
+						)
+					}
+				} else {
+					g.NewTurn()
 				}
-				g.NewTurn()
 			}
 		}
 
@@ -466,7 +479,7 @@ func (g *Game) ProcessActionMessage(message messages.ActionMessage) messages.Mes
 			return messages.NewActionErrorMessage(message.SenderID, messages.NotAllowed)
 		}
 
-		if message.TargetIndex < 0 || message.TargetIndex > len(g.state.PeekedCards) {
+		if message.TargetIndex < 0 || message.TargetIndex >= len(g.state.PeekedCards) {
 			return messages.NewActionErrorMessage(message.SenderID, messages.InvalidAction(message.Action))
 		}
 
