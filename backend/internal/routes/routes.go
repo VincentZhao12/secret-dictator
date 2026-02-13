@@ -39,6 +39,8 @@ func SetupRouter(m *game.Manager, env envs.Env) http.Handler {
 	r.Route("/api/v1", func(api chi.Router) {
 		api.Post("/games/create", handlers.CreateGame(m))
 		api.Post("/games/join", handlers.JoinGame(m))
+		api.Post("/games/bots/add", handlers.AddBot(m))
+		api.Post("/games/bots/remove", handlers.RemoveBot(m))
 		api.Get("/play", handlers.Play(m))
 	})
 

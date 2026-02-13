@@ -87,6 +87,8 @@ func Play(Manager *game.Manager) http.HandlerFunc {
 					fmt.Println("Malformed action message")
 					continue
 				}
+				// Never trust client-provided sender IDs; bind actions to this socket's player.
+				action.SenderID = playerId
 				game.ActionChan <- action
 			default:
 				fmt.Println("Unexpected message type")

@@ -21,6 +21,7 @@ type Game struct {
 	Connections map[string]*websocket.Conn
 	manager     *Manager
 	connMu      sync.RWMutex
+	Bots        map[string]*models.Player
 }
 
 const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
@@ -44,6 +45,7 @@ func NewGame(manager *Manager) *Game {
 		manager:     manager,
 		Connections: make(map[string]*websocket.Conn),
 		ActionChan:  make(chan messages.ActionMessage),
+		Bots:        make(map[string]*models.Player),
 	}
 	go g.Run()
 	return g
@@ -63,12 +65,18 @@ func (g *Game) AddConnection(id string, conn *websocket.Conn) error {
 		return repository.ErrPlayerNotFound
 	}
 
+	player := g.state.GetPlayer(playerIndex)
+	// Bot players are server-controlled and must not own websocket connections.
+	if player != nil && player.IsBot {
+		g.connMu.Unlock()
+		return repository.ErrPlayerNotFound
+	}
+
 	if oldConn, exists := g.Connections[id]; exists && oldConn != nil {
 		fmt.Println("player connection alr exist")
 		// return repository.ErrPlayerAlreadyExists
 	}
 
-	player := g.state.GetPlayer(playerIndex)
 	if player != nil {
 		player.IsConnected = true
 	}
@@ -124,13 +132,21 @@ func (g *Game) DropConnection(id string) error {
 			g.connMu.Unlock()
 			return err
 		}
-		if len(g.state.Players) == 0 {
+
+		players := g.state.Players
+		nonBotPlayers := make([]*models.Player, 0, len(players))
+		for _, player := range players {
+			if !player.IsBot {
+				nonBotPlayers = append(nonBotPlayers, &player)
+			}
+		}
+		if len(nonBotPlayers) == 0 {
 			g.connMu.Unlock()
 			return nil
 		}
 		fmt.Println(g.HostID, id)
 		if g.HostID == id {
-			g.SetHostID(g.state.Players[0].ID)
+			g.SetHostID(nonBotPlayers[0].ID)
 		}
 	}
 	g.connMu.Unlock()
@@ -159,6 +175,65 @@ func (g *Game) NewPlayer(username string) (*models.Player, error) {
 	g.broadcastGameState()
 
 	return player, nil
+}
+
+func (g *Game) NewBotPlayer(modelSlug string) (*models.Player, error) {
+	playerID := generateRandomID(16)
+	player, err := g.state.AddBotPlayer(playerID, modelSlug)
+	if err != nil {
+		return nil, err
+	}
+
+	g.Bots[playerID] = player
+	g.broadcastGameState()
+
+	return player, nil
+}
+
+func (g *Game) AddBotForHost(requesterID string, modelSlug string) (*models.Player, error) {
+	if requesterID != g.HostID {
+		return nil, repository.ErrPlayerNotFound
+	}
+
+	if g.state.Phase != models.Setup {
+		return nil, repository.ErrGameInProgress
+	}
+
+	return g.NewBotPlayer(modelSlug)
+}
+
+func (g *Game) RemoveBotPlayerByID(playerID string) error {
+	targetIndex, exists := g.state.PlayerIndexMap[playerID]
+	if !exists {
+		return repository.ErrPlayerNotFound
+	}
+
+	targetPlayer := g.state.GetPlayer(targetIndex)
+	if targetPlayer == nil || !targetPlayer.IsBot {
+		return repository.ErrPlayerNotFound
+	}
+
+	if err := g.state.RemovePlayer(playerID); err != nil {
+		return err
+	}
+
+	delete(g.Bots, playerID)
+	delete(g.state.BotNotes, playerID)
+	g.broadcastGameState()
+
+	return nil
+}
+
+func (g *Game) RemoveBotForHost(requesterID string, playerID string) error {
+	if requesterID != g.HostID {
+		return repository.ErrPlayerNotFound
+	}
+
+	if g.state.Phase != models.Setup {
+		return repository.ErrGameInProgress
+	}
+
+	return g.RemoveBotPlayerByID(playerID)
 }
 
 func (g *Game) broadcastGameState() {
@@ -247,6 +322,12 @@ func (g *Game) ProcessActionMessage(message messages.ActionMessage) messages.Mes
 	p := g.state.GetPlayerByID(message.SenderID)
 	if p == nil {
 		return messages.NewActionErrorMessage(message.SenderID, messages.NotAllowed)
+	}
+	if p.IsBot {
+		switch message.Action {
+		case models.ActionStartGame:
+			return messages.NewActionErrorMessage(message.SenderID, messages.NotAllowed)
+		}
 	}
 	switch message.Action {
 	case models.ActionChatSend:

@@ -43,6 +43,7 @@ type GameState struct {
 	Winner              Team           `json:"winner,omitempty"`
 	HostID              string         `json:"host_id"`
 	ChatHistory         []ChatEntry    `json:"chat_history"`
+	BotNotes            map[string][]string `json:"bot_notes,omitempty"`
 }
 
 func createDeck() []Card {
@@ -77,6 +78,7 @@ func NewGameState() GameState {
 		Winner:              TeamUnassigned,
 		HostID:              "",
 		ChatHistory:         []ChatEntry{},
+		BotNotes:            make(map[string][]string),
 	}
 }
 
@@ -106,7 +108,7 @@ func (state *GameState) AddPlayer(id string, username string) (*Player, error) {
 		return nil, repository.ErrGameFull
 	}
 
-	if state.Phase != Setup && (state.Phase == Paused && state.ResumePhase == Setup) {
+	if state.Phase != Setup && (state.Phase != Paused || state.ResumePhase != Setup) {
 		return nil, repository.ErrGameInProgress
 	}
 
@@ -114,6 +116,36 @@ func (state *GameState) AddPlayer(id string, username string) (*Player, error) {
 	player := NewPlayer(id, username)
 	state.Players = append(state.Players, player)
 	return &player, nil
+}
+
+func (state *GameState) AddBotPlayer(id string, modelSlug string) (*Player, error) {
+	if _, exists := state.PlayerIndexMap[id]; exists {
+		return nil, repository.ErrPlayerAlreadyExists
+	}
+
+	if len(state.Players) >= 10 {
+		return nil, repository.ErrGameFull
+	}
+
+	if state.Phase != Setup {
+		return nil, repository.ErrGameInProgress
+	}
+
+	state.PlayerIndexMap[id] = len(state.Players)
+	username := state.nextBotUsername()
+	player := NewBotPlayer(id, modelSlug, username)
+	state.Players = append(state.Players, player)
+	return &player, nil
+}
+
+func (state *GameState) nextBotUsername() string {
+	var username string = BotUsernames[rand.Intn(len(BotUsernames))]
+	for _, player := range state.Players {
+		if player.Username == username {
+			return state.nextBotUsername()
+		}
+	}
+	return username
 }
 
 func (state *GameState) RemovePlayer(id string) error {

@@ -34,6 +34,9 @@ const (
 	NotAllowed    ActionErrorReason = "Action not allowed"
 	InvalidTarget ActionErrorReason = "Targeted player is cannot be targeted for this action"
 	CouldNotStart ActionErrorReason = "Could not start game"
+	CouldNotAddBot ActionErrorReason = "Could not add bot"
+	CouldNotRemoveBot ActionErrorReason = "Could not remove bot"
+	CouldNotUpdateBot ActionErrorReason = "Could not update bot"
 )
 
 func InvalidAction(action models.Action) ActionErrorReason {
