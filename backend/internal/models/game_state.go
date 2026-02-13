@@ -15,6 +15,13 @@ const (
 	VoteNein
 )
 
+type ChatEntry struct {
+	SenderID   string `json:"sender_id"`
+	SenderName string `json:"sender_name"`
+	Text       string `json:"text"`
+	SentAtUnix int64  `json:"sent_at_unix"`
+}
+
 type GameState struct {
 	Players             []Player       `json:"players"`
 	PlayerIndexMap      map[string]int `json:"-"`
@@ -35,6 +42,7 @@ type GameState struct {
 	ResumePhase         GamePhase      `json:"resume_phase,omitempty"`
 	Winner              Team           `json:"winner,omitempty"`
 	HostID              string         `json:"host_id"`
+	ChatHistory         []ChatEntry    `json:"chat_history"`
 }
 
 func createDeck() []Card {
@@ -68,6 +76,7 @@ func NewGameState() GameState {
 		ResumeOrderIndex:    -1,
 		Winner:              TeamUnassigned,
 		HostID:              "",
+		ChatHistory:         []ChatEntry{},
 	}
 }
 
@@ -204,6 +213,15 @@ func (state *GameState) RevealPlayer(viewer Player, revealed Player) GameState {
 	// Deep copy discard
 	obfuscatedState.Discard = append([]Card(nil), state.Discard...)
 
+	// Deep copy chat history without leaking player IDs
+	obfuscatedState.ChatHistory = make([]ChatEntry, len(state.ChatHistory))
+	for i, chat := range state.ChatHistory {
+		if chat.SenderID != viewer.ID {
+			chat.SenderID = ""
+		}
+		obfuscatedState.ChatHistory[i] = chat
+	}
+
 	// Hide peeked cards unless viewer is the peeker
 	peeker := obfuscatedState.GetPlayer(obfuscatedState.PeekerIndex)
 	if peeker != nil && viewer.ID != peeker.ID {
@@ -250,6 +268,15 @@ func (state *GameState) ObfuscateGameState(p Player) GameState {
 	obfuscatedState.Discard = make([]Card, len(state.Discard))
 	for i := range obfuscatedState.Discard {
 		obfuscatedState.Discard[i] = state.Discard[i]
+	}
+
+	// Deep copy chat history without leaking player IDs
+	obfuscatedState.ChatHistory = make([]ChatEntry, len(state.ChatHistory))
+	for i, chat := range state.ChatHistory {
+		if chat.SenderID != p.ID {
+			chat.SenderID = ""
+		}
+		obfuscatedState.ChatHistory[i] = chat
 	}
 
 	// Obfuscate hands

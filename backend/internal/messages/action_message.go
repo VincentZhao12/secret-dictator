@@ -12,9 +12,10 @@ type ActionMessage struct {
 	Action      models.Action `json:"action" tstype:"Action"`
 	TargetIndex int           `json:"target_index,omitempty"`
 	Vote        *bool         `json:"vote,omitempty"`
+	Text        string        `json:"text,omitempty"`
 }
 
-func NewActionMessage(senderID string, action models.Action, targetIndex int, vote bool) *ActionMessage {
+func NewActionMessage(senderID string, action models.Action, targetIndex int, vote bool, text string) *ActionMessage {
 	return &ActionMessage{
 		BaseMessage: BaseMessage{
 			Type:     MessageTypeAction,
@@ -23,6 +24,7 @@ func NewActionMessage(senderID string, action models.Action, targetIndex int, vo
 		Action:      action,
 		TargetIndex: targetIndex,
 		Vote:        &vote,
+		Text:        text,
 	}
 }
 

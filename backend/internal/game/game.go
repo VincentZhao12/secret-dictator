@@ -3,6 +3,7 @@ package game
 import (
 	"fmt"
 	"math/rand"
+	"strings"
 	"sync"
 	"time"
 
@@ -23,6 +24,8 @@ type Game struct {
 }
 
 const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+const maxChatLength = 500
+const maxChatHistory = 200
 
 func generateRandomID(length int) string {
 	seededRand := rand.New(rand.NewSource(time.Now().UnixNano()))
@@ -246,6 +249,29 @@ func (g *Game) ProcessActionMessage(message messages.ActionMessage) messages.Mes
 		return messages.NewActionErrorMessage(message.SenderID, messages.NotAllowed)
 	}
 	switch message.Action {
+	case models.ActionChatSend:
+		trimmedText := strings.TrimSpace(message.Text)
+		if trimmedText == "" || len(trimmedText) > maxChatLength {
+			return messages.NewActionErrorMessage(message.SenderID, messages.InvalidAction(message.Action))
+		}
+
+		g.state.ChatHistory = append(g.state.ChatHistory, models.ChatEntry{
+			SenderID:   p.ID,
+			SenderName: p.Username,
+			Text:       trimmedText,
+			SentAtUnix: time.Now().Unix(),
+		})
+		if len(g.state.ChatHistory) > maxChatHistory {
+			g.state.ChatHistory = g.state.ChatHistory[len(g.state.ChatHistory)-maxChatHistory:]
+		}
+
+		g.broadcastGameState()
+
+		return messages.NewGameStateMessage(
+			"server",
+			g.state.ObfuscateGameState(*p),
+		)
+
 	case models.ActionStartGame:
 		// Only host can start the game
 		if message.SenderID != g.HostID {

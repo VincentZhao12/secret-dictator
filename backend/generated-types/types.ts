@@ -26,6 +26,7 @@ export interface ActionMessage {
   action: Action;
   target_index?: number /* int */;
   vote?: boolean;
+  text?: string;
 }
 export type ActionErrorReason = string;
 export const NotAllowed: ActionErrorReason = "Action not allowed";
@@ -76,6 +77,7 @@ export interface BaseMessage {
 
 export type Action = string;
 export const ActionStartGame: Action = "start_game";
+export const ActionChatSend: Action = "chat_send";
 export const ActionInvestigate: Action = "investigate";
 export const ActionSpecialElection: Action = "special_election";
 export const ActionPolicyPeek: Action = "policy_peek";
@@ -122,6 +124,12 @@ export const VotePending: VoteResult = 0;
 export const VoteHidden: VoteResult = 1;
 export const VoteJa: VoteResult = 2;
 export const VoteNein: VoteResult = 3;
+export interface ChatEntry {
+  sender_id: string;
+  sender_name: string;
+  text: string;
+  sent_at_unix: number /* int64 */;
+}
 export interface GameState {
   players: Player[];
   deck: Card[];
@@ -141,6 +149,7 @@ export interface GameState {
   resume_phase?: GamePhase;
   winner?: Team;
   host_id: string;
+  chat_history: ChatEntry[];
 }
 
 //////////

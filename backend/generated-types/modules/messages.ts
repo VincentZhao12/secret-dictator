@@ -10,6 +10,7 @@ export interface ActionMessage {
   action: Action;
   target_index?: number /* int */;
   vote?: boolean;
+  text?: string;
 }
 export type ActionErrorReason = string;
 export const NotAllowed: ActionErrorReason = "Action not allowed";

@@ -1,4 +1,4 @@
-import { Board, Container, ActionPanel } from "@components";
+import { Board, Container, ActionPanel, ChatPanel } from "@components";
 import {
   type GameState,
   type Player,
@@ -15,6 +15,7 @@ import {
   TeamLiberal,
   TeamFascist,
   ActionNominate,
+  ActionChatSend,
 } from "@types";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -284,6 +285,17 @@ export default function Game({
     onAction(actionMessage);
   };
 
+  const handleChatSend = (text: string) => {
+    onAction({
+      action: ActionChatSend,
+      text,
+      base_message: {
+        type: "action",
+        sender_id: currentPlayerId,
+      },
+    });
+  };
+
   return (
     <>
       {/* Game Over Overlay */}
@@ -461,11 +473,16 @@ export default function Game({
             </div>
 
             {/* Action Panel */}
-            <div className="w-full lg:w-96 flex-shrink-0">
+            <div className="w-full lg:w-96 flex-shrink-0 space-y-4">
               <ActionPanel
                 gameState={state}
                 currentPlayerId={currentPlayerId}
                 onAction={handleAction}
+              />
+              <ChatPanel
+                chatHistory={state.chat_history ?? []}
+                currentPlayerId={currentPlayerId}
+                onSend={handleChatSend}
               />
             </div>
           </div>

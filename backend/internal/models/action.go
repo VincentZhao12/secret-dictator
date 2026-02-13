@@ -4,6 +4,7 @@ type Action string
 
 const (
 	ActionStartGame       Action = "start_game"
+	ActionChatSend        Action = "chat_send"
 	ActionInvestigate     Action = "investigate"
 	ActionSpecialElection Action = "special_election"
 	ActionPolicyPeek      Action = "policy_peek"
