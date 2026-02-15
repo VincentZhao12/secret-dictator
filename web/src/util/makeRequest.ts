@@ -23,9 +23,13 @@ export const makeRequest = async <T>(
     }
   }
 
-  const response: T = (await res.json()) as T;
+  // Some endpoints intentionally return no body (e.g. 204 No Content).
+  const raw = await res.text();
+  if (!raw) {
+    return undefined as T;
+  }
 
-  return response;
+  return JSON.parse(raw) as T;
 };
 
 export const makePostRequest = async <T>(

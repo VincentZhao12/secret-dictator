@@ -12,8 +12,7 @@ import {
 } from "../components";
 import "../App.css";
 import { useMutation } from "@tanstack/react-query";
-import { makePostRequest } from "@util/MakeRequest";
-import { type JoinGameResponse, type JoinGameRequest } from "@types";
+import { joinGame as joinGameApi } from "@util/GameApi";
 
 function JoinGame() {
   const navigate = useNavigate();
@@ -26,9 +25,7 @@ function JoinGame() {
   }>({});
 
   const joinGame = useMutation({
-    mutationFn: async (request: JoinGameRequest) => {
-      return makePostRequest<JoinGameResponse>("games/join", request);
-    },
+    mutationFn: joinGameApi,
     onError: (error) => {
       const newErrors: { join?: string; gameId?: string; username?: string } = {
         join: error.message,

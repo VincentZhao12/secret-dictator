@@ -23,6 +23,7 @@ export default function Play() {
     }
     return localStorage.getItem(`player_id_for_${gameId}`) ?? "";
   }
+  const resolvedPlayerId = getPlayerId();
 
   const {
     gameState,
@@ -32,7 +33,7 @@ export default function Play() {
     connectionErrorType,
     lastError,
     sendMessage,
-  } = useGameState(gameId ?? "", getPlayerId(), (error) => {
+  } = useGameState(gameId ?? "", resolvedPlayerId, (error) => {
     console.log(error);
     showError(error.message);
   });
@@ -101,7 +102,7 @@ export default function Play() {
     <>
       <Game
         state={gameState!}
-        currentPlayerId={playerId ?? ""}
+        currentPlayerId={resolvedPlayerId}
         onAction={sendMessage}
         gameId={gameId ?? ""}
       />

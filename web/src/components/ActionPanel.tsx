@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { Button } from "./Button";
 import { PolicyCard } from "./PolicyCard";
-import { FaThumbsUp, FaThumbsDown, FaPlay } from "react-icons/fa";
+import { FaThumbsUp, FaThumbsDown, FaPlay, FaLink, FaCheck } from "react-icons/fa";
 import type { GameState, ActionMessage } from "../types";
 import {
   ActionVote,
@@ -30,14 +30,17 @@ interface ActionPanelProps {
   gameState: GameState;
   currentPlayerId: string;
   onAction: (action: ActionMessage) => void;
+  gameId: string;
 }
 
 export function ActionPanel({
   gameState,
   currentPlayerId,
   onAction,
+  gameId,
 }: ActionPanelProps) {
   const [selectedCard, setSelectedCard] = useState<number>(-1);
+  const [copied, setCopied] = useState(false);
 
   // Find current player index from ID
   const currentPlayerIndex = gameState.players.findIndex(
@@ -47,6 +50,7 @@ export function ActionPanel({
   const currentPlayer =
     currentPlayerIndex >= 0 ? gameState.players[currentPlayerIndex] : null;
   const isCurrentPlayerDead = currentPlayer?.is_executed || false;
+  const isHost = currentPlayerId === gameState.host_id;
 
   const isCurrentPlayerTurn = (requiredIndex: number) => {
     return currentPlayerIndex === requiredIndex;
@@ -154,6 +158,17 @@ export function ActionPanel({
         type: MessageTypeAction,
       },
     });
+  };
+
+  const handleCopyInviteLink = async () => {
+    const inviteUrl = `${window.location.origin}/join?game=${gameId}`;
+    try {
+      await navigator.clipboard.writeText(inviteUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error("Failed to copy invite link:", err);
+    }
   };
 
   const renderVotingInterface = () => {
@@ -324,7 +339,6 @@ export function ActionPanel({
   };
 
   const renderStartGameButton = () => {
-    const isHost = currentPlayerId === gameState.host_id;
     const isSetupPhase = gameState.phase === Setup;
     const hasEnoughPlayers = gameState.players.length >= 5;
 
@@ -332,6 +346,22 @@ export function ActionPanel({
 
     return (
       <div className="flex flex-col items-center space-y-4">
+        <button
+          onClick={handleCopyInviteLink}
+          className="bg-orange-600 hover:bg-orange-700 text-black px-4 py-3 rounded-lg border-4 border-black shadow-[4px_4px_0px_black] font-propaganda font-bold tracking-wider uppercase transition-all duration-200 hover:scale-105 flex items-center space-x-2"
+        >
+          {copied ? (
+            <>
+              <FaCheck className="text-sm" />
+              <span>COPIED!</span>
+            </>
+          ) : (
+            <>
+              <FaLink className="text-sm" />
+              <span>INVITE LINK</span>
+            </>
+          )}
+        </button>
         <button
           onClick={handleStartGame}
           disabled={!hasEnoughPlayers}
@@ -413,6 +443,14 @@ export function ActionPanel({
         )}
       </div>
     ),
-    [gameState, currentPlayerId, selectedCard, onAction, isCurrentPlayerDead]
+    [
+      gameState,
+      currentPlayerId,
+      selectedCard,
+      onAction,
+      isCurrentPlayerDead,
+      gameId,
+      copied,
+    ]
   );
 }

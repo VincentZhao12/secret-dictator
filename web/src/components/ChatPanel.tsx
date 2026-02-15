@@ -43,11 +43,31 @@ export function ChatPanel({
   onSend,
 }: ChatPanelProps) {
   const [draft, setDraft] = useState("");
-  const endRef = useRef<HTMLDivElement | null>(null);
+  const listRef = useRef<HTMLDivElement | null>(null);
+  const lastSeenMessageKeyRef = useRef<string>("");
+
+  const lastMessage = chatHistory[chatHistory.length - 1];
+  const lastMessageKey = lastMessage
+    ? `${lastMessage.sent_at_unix}-${lastMessage.sender_id}-${lastMessage.text}`
+    : "";
 
   useEffect(() => {
-    endRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [chatHistory]);
+    const listEl = listRef.current;
+    if (!listEl || !lastMessageKey) {
+      return;
+    }
+
+    if (lastSeenMessageKeyRef.current === lastMessageKey) {
+      return;
+    }
+
+    const shouldAnimate = lastSeenMessageKeyRef.current !== "";
+    listEl.scrollTo({
+      top: listEl.scrollHeight,
+      behavior: shouldAnimate ? "smooth" : "auto",
+    });
+    lastSeenMessageKeyRef.current = lastMessageKey;
+  }, [lastMessageKey]);
 
   const handleSend = () => {
     const text = draft.trim();
@@ -63,7 +83,10 @@ export function ChatPanel({
     <div className="bg-orange-100/90 border-4 border-black rounded-xl shadow-[6px_6px_0px_black] p-4">
       <h3 className="font-propaganda text-lg tracking-wider mb-3">CHAT</h3>
 
-      <div className="h-56 overflow-y-auto bg-white/90 border-3 border-black rounded-lg p-3 space-y-2">
+      <div
+        ref={listRef}
+        className="h-56 overflow-y-auto bg-white/90 border-3 border-black rounded-lg p-3 space-y-2"
+      >
         {chatHistory.length === 0 ? (
           <p className="text-sm font-propaganda text-gray-600 tracking-wide">
             No messages yet.
@@ -93,7 +116,6 @@ export function ChatPanel({
             );
           })
         )}
-        <div ref={endRef} />
       </div>
 
       <div className="mt-3 flex min-w-0 gap-2">

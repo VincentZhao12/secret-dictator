@@ -18,8 +18,6 @@ import { PolicyCard } from "./PolicyCard";
 
 interface BoardProps {
   board: BoardType;
-  deckCount: number;
-  discardCount: number;
   className?: string;
 }
 
@@ -179,50 +177,14 @@ const Track = function ({
   );
 };
 
-interface PileDisplayProps {
-  label: string;
-  count: number;
-  type: "deck" | "discard";
-}
-
-function PileDisplay({ label, count, type }: PileDisplayProps) {
-  return (
-    <div className="flex flex-col items-center">
-      <div
-        className={`relative w-20 h-28 border-4 border-black rounded-lg flex flex-col items-center justify-center shadow-[4px_4px_0px_black] ${
-          type === "deck" ? "bg-purple-600" : "bg-gray-600"
-        }`}
-      >
-        <RiStackFill className="text-white text-3xl mb-2" />
-        <div className="absolute bottom-2 bg-white border-2 border-black rounded-full w-10 h-10 flex items-center justify-center">
-          <span className="font-propaganda text-lg font-bold text-black">
-            {count}
-          </span>
-        </div>
-      </div>
-      <span className="mt-2 font-propaganda text-xs tracking-wider text-black">
-        {label}
-      </span>
-    </div>
-  );
-}
-
 export function Board({
   board,
-  deckCount,
-  discardCount,
   className = "",
 }: BoardProps) {
   const isDangerZone = board.fascist_policies >= 3;
 
   return (
     <div className={`w-full max-w-4xl mx-auto space-y-6 ${className}`}>
-      {/* Deck and Discard Display */}
-      <div className="flex justify-center space-x-8 mb-4">
-        <PileDisplay label="DRAW PILE" count={deckCount} type="deck" />
-        <PileDisplay label="DISCARD PILE" count={discardCount} type="discard" />
-      </div>
-
       {/* Danger Zone Warning */}
       {isDangerZone && (
         <div className="bg-red-600 border-4 border-black rounded-xl p-4 shadow-[6px_6px_0px_black]">

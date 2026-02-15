@@ -1,4 +1,7 @@
 import { Board, Container, ActionPanel, ChatPanel } from "@components";
+import { useMutation } from "@tanstack/react-query";
+import { useToast } from "../contexts/ToastContext";
+import { addBot, removePlayer } from "../util/GameApi";
 import {
   type GameState,
   type Player,
@@ -16,18 +19,21 @@ import {
   TeamFascist,
   ActionNominate,
   ActionChatSend,
+  ActionExecution,
+  ActionInvestigate,
+  ActionSpecialElection,
 } from "@types";
-import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   FaCrown,
   FaGavel,
   FaSkull,
   FaWifi,
-  FaLink,
-  FaCheck,
   FaTrophy,
   FaHome,
+  FaRobot,
+  FaUserTimes,
+  FaHandPointer,
 } from "react-icons/fa";
 
 interface GameProps {
@@ -44,6 +50,12 @@ interface PlayerCardProps {
   isChancellor: boolean;
   isNominee: boolean;
   isCurrentPlayer: boolean;
+  canRemove: boolean;
+  onRemove: (playerId: string) => void;
+  isRemovingPlayer: boolean;
+  isSelectionRequired: boolean;
+  isSelectableTarget: boolean;
+  selectionColorClasses: string;
   vote?: VoteResult;
   onClick: (playerIndex: number) => void;
 }
@@ -55,6 +67,12 @@ function PlayerCard({
   isChancellor,
   isNominee,
   isCurrentPlayer,
+  canRemove,
+  onRemove,
+  isRemovingPlayer,
+  isSelectionRequired,
+  isSelectableTarget,
+  selectionColorClasses,
   vote,
   onClick,
 }: PlayerCardProps) {
@@ -88,13 +106,19 @@ function PlayerCard({
 
   return (
     <div
-      onClick={() => !player.is_executed && onClick(index)}
+      onClick={() => isSelectableTarget && onClick(index)}
       className={`relative border-4 rounded-xl p-3 shadow-[4px_4px_0px_black] transition-transform duration-200 min-w-[120px] ${
         player.is_executed
           ? "bg-gray-400/60 cursor-default opacity-75 border-black"
           : player.is_connected
           ? "bg-orange-200/90 cursor-pointer hover:scale-105 border-black"
           : "bg-orange-200/60 cursor-pointer hover:scale-105 border-red-500"
+      } ${
+        isSelectionRequired && !player.is_executed
+          ? isSelectableTarget
+            ? selectionColorClasses
+            : "opacity-50 cursor-not-allowed hover:scale-100"
+          : ""
       }`}
     >
       {/* Disconnected indicator */}
@@ -103,6 +127,30 @@ function PlayerCard({
           <FaWifi className="text-xs rotate-45" />
           <span className="text-xs font-propaganda font-bold">OFFLINE</span>
         </div>
+      )}
+
+      {/* Bot indicator */}
+      {player.is_bot && !player.is_executed && (
+        <div className="absolute -top-3 right-2 bg-blue-500 text-white px-2 py-0.5 rounded-full border-2 border-black shadow-[2px_2px_0px_black] flex items-center space-x-1">
+          <FaRobot className="text-xs" />
+          <span className="text-xs font-propaganda font-bold">BOT</span>
+        </div>
+      )}
+
+      {/* Host setup control */}
+      {canRemove && (
+        <button
+          type="button"
+          onClick={(event) => {
+            event.stopPropagation();
+            onRemove(player.id);
+          }}
+          disabled={isRemovingPlayer}
+          title={`Remove ${player.username}`}
+          className="absolute -bottom-2 -right-2 w-7 h-7 bg-red-600 hover:bg-red-700 text-white border-2 border-black rounded-full shadow-[2px_2px_0px_black] flex items-center justify-center disabled:opacity-60 disabled:cursor-not-allowed"
+        >
+          <FaUserTimes className="text-xs" />
+        </button>
       )}
 
       {/* Dead player overlay */}
@@ -188,7 +236,18 @@ interface PlayerRowProps {
   chancellorIndex: number;
   nomineeIndex: number;
   currentPlayerId: string;
+  isSetupPhase: boolean;
+  isHost: boolean;
+  canAddBot: boolean;
+  isAddingBot: boolean;
+  isRemovingPlayer: boolean;
+  selectionPrompt: string | null;
+  selectionColorClasses: string;
+  selectionBannerClasses: string;
+  isSelectableTarget: (playerIndex: number) => boolean;
   votes?: VoteResult[];
+  onAddBot: () => void;
+  onRemovePlayer: (playerId: string) => void;
   onPlayerClick: (playerIndex: number) => void;
 }
 
@@ -198,11 +257,52 @@ function PlayerRow({
   chancellorIndex,
   nomineeIndex,
   currentPlayerId,
+  isSetupPhase,
+  isHost,
+  canAddBot,
+  isAddingBot,
+  isRemovingPlayer,
+  selectionPrompt,
+  selectionColorClasses,
+  selectionBannerClasses,
+  isSelectableTarget,
   votes,
+  onAddBot,
+  onRemovePlayer,
   onPlayerClick,
 }: PlayerRowProps) {
   return (
-    <div className="w-full overflow-x-auto mb-8 pt-4 pb-4">
+    <div className="w-full mb-6">
+      {isSetupPhase && isHost && (
+        <div className="flex justify-end mb-3 px-4">
+          <button
+            type="button"
+            onClick={onAddBot}
+            disabled={!canAddBot || isAddingBot}
+            className={`font-propaganda text-xs tracking-wider px-3 py-2 border-3 border-black rounded-lg shadow-[2px_2px_0px_black] flex items-center gap-2 ${
+              canAddBot && !isAddingBot
+                ? "bg-blue-500 hover:bg-blue-600 text-white"
+                : "bg-gray-400 text-gray-600 cursor-not-allowed opacity-60"
+            }`}
+          >
+            <FaRobot className="text-xs" />
+            {isAddingBot ? "ADDING..." : "ADD BOT"}
+          </button>
+        </div>
+      )}
+      {selectionPrompt && (
+        <div className="px-4 mb-3">
+          <div
+            className={`border-4 border-black rounded-lg px-4 py-2 shadow-[3px_3px_0px_black] flex items-center gap-2 ${selectionBannerClasses}`}
+          >
+            <FaHandPointer className="text-black text-sm" />
+            <p className="font-propaganda text-sm tracking-wider text-black">
+              {selectionPrompt}
+            </p>
+          </div>
+        </div>
+      )}
+      <div className="overflow-x-auto pt-2 pb-4 scroll-smooth">
       <div className="flex justify-start space-x-4 min-w-max px-4">
         {players.map((player, index) => (
           <PlayerCard
@@ -213,10 +313,17 @@ function PlayerRow({
             isChancellor={index === chancellorIndex}
             isNominee={index === nomineeIndex}
             isCurrentPlayer={player.id === currentPlayerId}
+            canRemove={isSetupPhase && isHost && player.id !== currentPlayerId}
+            onRemove={onRemovePlayer}
+            isRemovingPlayer={isRemovingPlayer}
+            isSelectionRequired={selectionPrompt !== null}
+            isSelectableTarget={isSelectableTarget(index)}
+            selectionColorClasses={selectionColorClasses}
             vote={votes && votes[index]}
             onClick={onPlayerClick}
           />
         ))}
+      </div>
       </div>
     </div>
   );
@@ -230,7 +337,7 @@ export default function Game({
 }: GameProps) {
   console.log(state);
   const navigate = useNavigate();
-  const [copied, setCopied] = useState(false);
+  const { showError, showSuccess } = useToast();
 
   // Find current player index from ID
   const currentPlayerIndex = state.players.findIndex(
@@ -240,23 +347,136 @@ export default function Game({
   const currentPlayer =
     currentPlayerIndex >= 0 ? state.players[currentPlayerIndex] : null;
   const isCurrentPlayerDead = currentPlayer?.is_executed || false;
+  const isSetupPhase = state.phase === Setup;
+  const isHost = currentPlayerId === state.host_id;
+  const isCurrentPlayerPresident = currentPlayerIndex === state.president_index;
+
+  const isSelectingInNomination =
+    state.phase === Nomination && isCurrentPlayerPresident && !isCurrentPlayerDead;
+  const isSelectingInExecutive =
+    state.phase === Executive &&
+    isCurrentPlayerPresident &&
+    !isCurrentPlayerDead &&
+    (state.pending_action === ActionExecution ||
+      state.pending_action === ActionInvestigate ||
+      state.pending_action === ActionSpecialElection);
+  const isSelectionRequired = isSelectingInNomination || isSelectingInExecutive;
+
+  const selectionPrompt = (() => {
+    if (isSelectingInNomination) {
+      return "Select a chancellor candidate";
+    }
+    if (isSelectingInExecutive) {
+      switch (state.pending_action) {
+        case ActionExecution:
+          return "Select a player to execute";
+        case ActionInvestigate:
+          return "Select a player to investigate";
+        case ActionSpecialElection:
+          return "Select the next president";
+        default:
+          return null;
+      }
+    }
+    return null;
+  })();
+
+  const selectionColorClasses = (() => {
+    if (isSelectingInNomination) {
+      return "ring-4 ring-blue-400";
+    }
+    if (isSelectingInExecutive) {
+      switch (state.pending_action) {
+        case ActionExecution:
+          return "ring-4 ring-red-500";
+        case ActionInvestigate:
+          return "ring-4 ring-white";
+        case ActionSpecialElection:
+          return "ring-4 ring-indigo-400";
+        default:
+          return "ring-4 ring-blue-400";
+      }
+    }
+    return "";
+  })();
+
+  const selectionBannerClasses = (() => {
+    if (isSelectingInNomination) {
+      return "bg-blue-300";
+    }
+    if (isSelectingInExecutive) {
+      switch (state.pending_action) {
+        case ActionExecution:
+          return "bg-red-300";
+        case ActionInvestigate:
+          return "bg-white";
+        case ActionSpecialElection:
+          return "bg-indigo-300";
+        default:
+          return "bg-blue-300";
+      }
+    }
+    return "bg-blue-300";
+  })();
+
+  const isSelectableTarget = (playerIndex: number) => {
+    const player = state.players[playerIndex];
+    if (!player || player.is_executed) return false;
+    if (!isSelectionRequired) return !player.is_executed;
+
+    if (isSelectingInNomination) {
+      return (
+        playerIndex !== state.president_index &&
+        playerIndex !== state.prev_president_index &&
+        playerIndex !== state.prev_chancellor_index
+      );
+    }
+
+    if (isSelectingInExecutive) {
+      return true;
+    }
+
+    return false;
+  };
 
   const handleBackToHome = () => {
     navigate("/");
   };
 
-  const handleCopyInviteLink = async () => {
-    const inviteUrl = `${window.location.origin}/join?game=${gameId}`;
-    try {
-      await navigator.clipboard.writeText(inviteUrl);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch (err) {
-      console.error("Failed to copy invite link:", err);
-    }
+  const addBotMutation = useMutation({
+    mutationFn: addBot,
+    onSuccess: () => showSuccess("Bot added"),
+    onError: (error: Error) => showError(error.message || "Failed to add bot"),
+  });
+
+  const removePlayerMutation = useMutation({
+    mutationFn: removePlayer,
+    onSuccess: () => showSuccess("Player removed"),
+    onError: (error: Error) =>
+      showError(error.message || "Failed to remove player"),
+  });
+
+  const handleAddBot = () => {
+    addBotMutation.mutate({
+      game_id: gameId,
+      host_id: currentPlayerId,
+      model_slug: "openai/gpt-oss-120b:free",
+    });
+  };
+
+  const handleRemovePlayer = (playerId: string) => {
+    removePlayerMutation.mutate({
+      game_id: gameId,
+      host_id: currentPlayerId,
+      player_id: playerId,
+    });
   };
 
   const handlePlayerClick = (playerIndex: number) => {
+    if (!isSelectableTarget(playerIndex)) {
+      return;
+    }
+
     switch (state.phase) {
       case Nomination:
         onAction({
@@ -404,28 +624,6 @@ export default function Game({
         </button>
       </div>
 
-      {/* Invite Link Button - Top Right */}
-      {state.phase === Setup && (
-        <div className="fixed top-6 right-6 z-40">
-          <button
-            onClick={handleCopyInviteLink}
-            className="bg-orange-600 hover:bg-orange-700 text-black px-4 py-3 rounded-lg border-4 border-black shadow-[4px_4px_0px_black] font-propaganda font-bold tracking-wider uppercase transition-all duration-200 hover:scale-105 flex items-center space-x-2"
-          >
-            {copied ? (
-              <>
-                <FaCheck className="text-sm" />
-                <span>COPIED!</span>
-              </>
-            ) : (
-              <>
-                <FaLink className="text-sm" />
-                <span>INVITE LINK</span>
-              </>
-            )}
-          </button>
-        </div>
-      )}
-
       {/* Full screen overlay for dead players */}
       {isCurrentPlayerDead && (
         <div className="fixed inset-0 bg-black/30 z-50 pointer-events-none">
@@ -457,7 +655,18 @@ export default function Game({
             chancellorIndex={state.chancellor_index}
             nomineeIndex={state.nominee_index}
             currentPlayerId={currentPlayerId}
+            isSetupPhase={isSetupPhase}
+            isHost={isHost}
+            canAddBot={state.players.length < 10}
+            isAddingBot={addBotMutation.isPending}
+            isRemovingPlayer={removePlayerMutation.isPending}
+            selectionPrompt={selectionPrompt}
+            selectionColorClasses={selectionColorClasses}
+            selectionBannerClasses={selectionBannerClasses}
+            isSelectableTarget={isSelectableTarget}
             votes={state.votes}
+            onAddBot={handleAddBot}
+            onRemovePlayer={handleRemovePlayer}
             onPlayerClick={handlePlayerClick}
           />
 
@@ -465,19 +674,36 @@ export default function Game({
           <div className="flex flex-col lg:flex-row gap-6 items-start">
             {/* Game Board */}
             <div className="flex-1">
-              <Board
-                board={state.board}
-                deckCount={state.deck?.length || 0}
-                discardCount={state.discard?.length || 0}
-              />
+              <Board board={state.board} />
             </div>
 
             {/* Action Panel */}
             <div className="w-full lg:w-96 flex-shrink-0 space-y-4">
+              <div className="bg-orange-100/90 border-4 border-black rounded-xl shadow-[6px_6px_0px_black] p-3">
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="bg-purple-600 border-3 border-black rounded-lg px-3 py-2 text-center shadow-[2px_2px_0px_black]">
+                    <p className="font-propaganda text-[10px] tracking-wider text-white">
+                      DRAW PILE
+                    </p>
+                    <p className="font-propaganda text-xl text-white leading-none">
+                      {state.deck?.length || 0}
+                    </p>
+                  </div>
+                  <div className="bg-gray-700 border-3 border-black rounded-lg px-3 py-2 text-center shadow-[2px_2px_0px_black]">
+                    <p className="font-propaganda text-[10px] tracking-wider text-white">
+                      DISCARD
+                    </p>
+                    <p className="font-propaganda text-xl text-white leading-none">
+                      {state.discard?.length || 0}
+                    </p>
+                  </div>
+                </div>
+              </div>
               <ActionPanel
                 gameState={state}
                 currentPlayerId={currentPlayerId}
                 onAction={handleAction}
+                gameId={gameId}
               />
               <ChatPanel
                 chatHistory={state.chat_history ?? []}

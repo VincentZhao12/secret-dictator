@@ -11,8 +11,7 @@ import {
 import { useEffect, useState } from "react";
 import { FaChevronDown, FaChevronUp, FaInfoCircle } from "react-icons/fa";
 import { useMutation } from "@tanstack/react-query";
-import { makePostRequest } from "@util/MakeRequest";
-import type { CreateGameResponse } from "../types";
+import { createGame as createGameApi } from "@util/GameApi";
 
 function Home() {
   const navigate = useNavigate();
@@ -20,9 +19,7 @@ function Home() {
   const [showDisclosures, setShowDisclosures] = useState(false);
 
   const createGame = useMutation({
-    mutationFn: async () => {
-      return await makePostRequest<CreateGameResponse>("games/create", {});
-    },
+    mutationFn: createGameApi,
     onSuccess: (data) => {
       setErrorMessage(null); // Clear any previous errors
       navigate(`/join?game=${data.game_id}`);
