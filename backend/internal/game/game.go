@@ -7,6 +7,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/VincentZhao12/secret-hitler/backend/internal/bot"
 	"github.com/VincentZhao12/secret-hitler/backend/internal/messages"
 	"github.com/VincentZhao12/secret-hitler/backend/internal/models"
 	"github.com/VincentZhao12/secret-hitler/backend/internal/repository"
@@ -20,6 +21,7 @@ type Game struct {
 	ActionChan  chan (messages.ActionMessage)
 	Connections map[string]*websocket.Conn
 	manager     *Manager
+	botRunner   *bot.Orchestrator
 	connMu      sync.RWMutex
 	Bots        map[string]*models.Player
 }
@@ -38,11 +40,12 @@ func generateRandomID(length int) string {
 	return string(b)
 }
 
-func NewGame(manager *Manager) *Game {
+func NewGame(manager *Manager, botProvider bot.Provider) *Game {
 	g := &Game{
 		ID:          generateRandomID(8),
 		state:       models.NewGameState(),
 		manager:     manager,
+		botRunner:   bot.NewOrchestrator(botProvider),
 		Connections: make(map[string]*websocket.Conn),
 		ActionChan:  make(chan messages.ActionMessage),
 		Bots:        make(map[string]*models.Player),
@@ -90,9 +93,13 @@ func (g *Game) AddConnection(id string, conn *websocket.Conn) error {
 	g.connMu.Unlock()
 
 	if playerForState != nil {
+		gameState := g.state
+		if g.state.Phase != models.Setup {
+			gameState = g.state.ObfuscateGameState(*playerForState)
+		}
 		conn.WriteJSON(messages.NewGameStateMessage(
 			"server",
-			g.state.ObfuscateGameState(*playerForState),
+			gameState,
 		))
 	}
 	g.broadcastGameState()
@@ -236,6 +243,47 @@ func (g *Game) RemoveBotForHost(requesterID string, playerID string) error {
 	return g.RemoveBotPlayerByID(playerID)
 }
 
+func (g *Game) RemovePlayerForHost(requesterID string, playerID string) error {
+	if requesterID != g.HostID {
+		return repository.ErrPlayerNotFound
+	}
+
+	if g.state.Phase != models.Setup {
+		return repository.ErrGameInProgress
+	}
+
+	if playerID == "" || playerID == g.HostID {
+		return repository.ErrPlayerNotFound
+	}
+
+	targetPlayer := g.state.GetPlayerByID(playerID)
+	if targetPlayer == nil {
+		return repository.ErrPlayerNotFound
+	}
+	wasBot := targetPlayer.IsBot
+
+	g.connMu.Lock()
+	if conn, exists := g.Connections[playerID]; exists {
+		delete(g.Connections, playerID)
+		if conn != nil {
+			conn.Close()
+		}
+	}
+	g.connMu.Unlock()
+
+	if err := g.state.RemovePlayer(playerID); err != nil {
+		return err
+	}
+
+	if wasBot {
+		delete(g.Bots, playerID)
+		delete(g.state.BotNotes, playerID)
+	}
+
+	g.broadcastGameState()
+	return nil
+}
+
 func (g *Game) broadcastGameState() {
 	g.connMu.RLock()
 	snapshot := make(map[string]*websocket.Conn, len(g.Connections))
@@ -249,7 +297,7 @@ func (g *Game) broadcastGameState() {
 			player := g.state.GetPlayerByID(id)
 			if player != nil {
 				gameState := g.state
-				if gameState.Phase != models.GameOver {
+				if gameState.Phase != models.GameOver && gameState.Phase != models.Setup {
 					gameState = gameState.ObfuscateGameState(*player)
 				}
 				if err := conn.WriteJSON(messages.NewGameStateMessage(

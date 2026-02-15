@@ -239,6 +239,8 @@ func (state *GameState) ShuffleDeck() {
 func (state *GameState) RevealPlayer(viewer Player, revealed Player) GameState {
 	obfuscatedState := *state
 
+	obfuscatedState.BotNotes = nil
+
 	// Deep copy deck
 	obfuscatedState.Deck = append([]Card(nil), state.Deck...)
 
@@ -285,6 +287,8 @@ func (state *GameState) RevealPlayer(viewer Player, revealed Player) GameState {
 
 func (state *GameState) ObfuscateGameState(p Player) GameState {
 	obfuscatedState := *state
+
+	obfuscatedState.BotNotes = nil
 
 	if p.ID != state.HostID {
 		obfuscatedState.HostID = ""

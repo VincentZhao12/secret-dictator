@@ -2,16 +2,20 @@ package game
 
 import (
 	"sync"
+
+	"github.com/VincentZhao12/secret-hitler/backend/internal/bot"
 )
 
 type Manager struct {
-	Games map[string]*Game
-	mu    sync.RWMutex
+	Games       map[string]*Game
+	mu          sync.RWMutex
+	BotProvider bot.Provider
 }
 
-func NewManager() *Manager {
+func NewManager(botProvider bot.Provider) *Manager {
 	return &Manager{
-		Games: make(map[string]*Game),
+		Games:       make(map[string]*Game),
+		BotProvider: botProvider,
 	}
 }
 

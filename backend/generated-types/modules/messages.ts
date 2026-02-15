@@ -16,6 +16,9 @@ export type ActionErrorReason = string;
 export const NotAllowed: ActionErrorReason = "Action not allowed";
 export const InvalidTarget: ActionErrorReason = "Targeted player is cannot be targeted for this action";
 export const CouldNotStart: ActionErrorReason = "Could not start game";
+export const CouldNotAddBot: ActionErrorReason = "Could not add bot";
+export const CouldNotRemoveBot: ActionErrorReason = "Could not remove bot";
+export const CouldNotUpdateBot: ActionErrorReason = "Could not update bot";
 export interface ActionErrorMessage {
   base_message: BaseMessage;
   reason: ActionErrorReason;

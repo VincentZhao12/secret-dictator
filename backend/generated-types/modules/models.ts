@@ -78,6 +78,7 @@ export interface GameState {
   winner?: Team;
   host_id: string;
   chat_history: ChatEntry[];
+  bot_notes?: { [key: string]: string[]};
 }
 
 //////////
@@ -108,6 +109,8 @@ export interface Player {
   role: PlayerRole;
   is_executed: boolean;
   is_connected: boolean;
+  is_bot: boolean;
+  model_slug: string;
 }
 
 //////////

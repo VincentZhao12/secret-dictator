@@ -3,15 +3,18 @@ build-web:
 	mkdir -p static
 	cd ../backend && cp -r ../web/dist/* ./static
 	
-	
+
 build: build-web
 	go build -o bin main.go
 
 run: build
-	export ENV="development" && ./bin/main
+	set -a && [ -f .env.dev ] && . ./.env.dev && set +a && ./bin/main
 
-dev: build-web
-	export ENV="development" && go run main.go
+dev:
+	set -a && [ -f .env.dev ] && . ./.env.dev && set +a && go run main.go
+
+run-prod: build
+	set -a && [ -f .env.prod ] && . ./.env.prod && set +a && ./bin/main
 
 clean:
 	rm -rf bin

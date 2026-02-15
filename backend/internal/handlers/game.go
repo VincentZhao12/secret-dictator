@@ -14,7 +14,7 @@ type CreateGameResponse struct {
 func CreateGame(Manager *game.Manager) http.HandlerFunc {
 
 	return func(w http.ResponseWriter, r *http.Request) {
-		newGame := game.NewGame(Manager)
+		newGame := game.NewGame(Manager, Manager.BotProvider)
 		gameID := Manager.AddGame(newGame)
 
 		resp := CreateGameResponse{
@@ -150,6 +150,41 @@ func RemoveBot(Manager *game.Manager) http.HandlerFunc {
 		}
 
 		if err := game.RemoveBotForHost(req.HostID, req.BotPlayerID); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		w.WriteHeader(http.StatusNoContent)
+	}
+}
+
+type RemovePlayerRequest struct {
+	GameID   string `json:"game_id"`
+	HostID   string `json:"host_id"`
+	PlayerID string `json:"player_id"`
+}
+
+func RemovePlayer(Manager *game.Manager) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var req RemovePlayerRequest
+
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			http.Error(w, "Invalid request payload", http.StatusBadRequest)
+			return
+		}
+
+		game, exists := Manager.GetGame(req.GameID)
+		if game == nil || !exists {
+			http.Error(w, "Invalid game id", http.StatusBadRequest)
+			return
+		}
+
+		if req.HostID != game.HostID {
+			http.Error(w, "Only host can manage players", http.StatusForbidden)
+			return
+		}
+
+		if err := game.RemovePlayerForHost(req.HostID, req.PlayerID); err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}

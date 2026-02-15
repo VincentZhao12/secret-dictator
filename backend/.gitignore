@@ -1,2 +1,4 @@
 bin
 static
+.env.dev
+.env.prod

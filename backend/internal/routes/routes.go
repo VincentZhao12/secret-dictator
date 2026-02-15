@@ -41,6 +41,7 @@ func SetupRouter(m *game.Manager, env envs.Env) http.Handler {
 		api.Post("/games/join", handlers.JoinGame(m))
 		api.Post("/games/bots/add", handlers.AddBot(m))
 		api.Post("/games/bots/remove", handlers.RemoveBot(m))
+		api.Post("/games/players/remove", handlers.RemovePlayer(m))
 		api.Get("/play", handlers.Play(m))
 	})
 

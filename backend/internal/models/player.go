@@ -48,22 +48,24 @@ var BotUsernames = []string{
 
 func NewPlayer(id string, username string) Player {
 	return Player{
-		ID:         id,
-		Username:   username,
-		Role:       RoleUnassigned,
-		IsExecuted: false,
-		IsBot:      false,
-		ModelSlug:  "",
+		ID:          id,
+		Username:    username,
+		Role:        RoleUnassigned,
+		IsExecuted:  false,
+		IsConnected: false, // Will be set to true when they connect via websocket
+		IsBot:       false,
+		ModelSlug:   "",
 	}
 }
 
 func NewBotPlayer(id string, modelSlug string, username string) Player {
 	return Player{
-		ID:         id,
-		Username:   username,
-		Role:       RoleUnassigned,
-		IsExecuted: false,
-		IsBot:      true,
-		ModelSlug:  modelSlug,
+		ID:          id,
+		Username:    username,
+		Role:        RoleUnassigned,
+		IsExecuted:  false,
+		IsConnected: true, // Bots are always "connected" since they're server-controlled
+		IsBot:       true,
+		ModelSlug:   modelSlug,
 	}
 }

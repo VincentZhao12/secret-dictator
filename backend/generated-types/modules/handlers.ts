@@ -14,3 +14,22 @@ export interface JoinGameResponse {
   game_id: string;
   player_id: string;
 }
+export interface AddBotRequest {
+  game_id: string;
+  host_id: string;
+  model_slug: string;
+}
+export interface AddBotResponse {
+  game_id: string;
+  player_id: string;
+}
+export interface RemoveBotRequest {
+  game_id: string;
+  host_id: string;
+  bot_player_id: string;
+}
+export interface RemovePlayerRequest {
+  game_id: string;
+  host_id: string;
+  player_id: string;
+}
